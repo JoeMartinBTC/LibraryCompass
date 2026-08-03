@@ -1,0 +1,16 @@
+# Xcode / Swift
+.DS_Store
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+.swiftpm/
+.build/
+
+# Secrets / local config
+*.pem
+.env*
+
+# Delicious Library exports (private data, never commit)
+*.xml
