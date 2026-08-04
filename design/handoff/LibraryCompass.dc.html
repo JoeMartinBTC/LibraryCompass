@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root{
+  --bg-layers:radial-gradient(120% 95% at 10% -12%,#5A2497 0%,rgba(90,36,151,0) 55%),radial-gradient(95% 80% at 97% 6%,#2E3FA8 0%,rgba(46,63,168,0) 52%),radial-gradient(70% 60% at 60% 108%,#7A2A9E 0%,rgba(122,42,158,0) 60%),linear-gradient(163deg,#28104E 0%,#1B0C36 55%,#150A2C 100%);
+  --sidebar:rgba(12,5,28,.34);
+  --glass:rgba(255,255,255,.055);
+  --glass-2:rgba(255,255,255,.10);
+  --glass-3:rgba(255,255,255,.16);
+  --brd:rgba(255,255,255,.11);
+  --brd-2:rgba(255,255,255,.20);
+  --text:#FFFFFF; --text-2:rgba(255,255,255,.66); --text-3:rgba(255,255,255,.40);
+  --accent:#B45CFF; --accent-2:#7B3BE8; --accent-ink:#FFFFFF;
+  --cyan:#4FD8E8; --mint:#56E39F; --gold:#FFC24F; --pink:#FF6BC1;
+  --glow:0 0 0 1px rgba(255,255,255,.14),0 14px 40px rgba(180,92,255,.38);
+  --shadow-window:0 40px 90px rgba(0,0,0,.55);
+  --shadow-card:0 2px 6px rgba(0,0,0,.22),0 18px 44px rgba(0,0,0,.30);
+  --shadow-cover:0 3px 10px rgba(0,0,0,.34),0 14px 34px rgba(0,0,0,.34);
+  --shadow-sheet:0 30px 80px rgba(0,0,0,.62);
+  --scrim:linear-gradient(180deg,rgba(21,10,44,0) 0%,rgba(21,10,44,.50) 58%,rgba(21,10,44,.82) 100%);
+  --scheme:dark;
+}
+html[data-theme="light"]{
+  --bg-layers:radial-gradient(120% 95% at 10% -12%,#E5D6FF 0%,rgba(229,214,255,0) 55%),radial-gradient(95% 80% at 97% 6%,#D9E3FF 0%,rgba(217,227,255,0) 52%),radial-gradient(70% 60% at 60% 108%,#F0DAFB 0%,rgba(240,218,251,0) 60%),linear-gradient(163deg,#FAF7FF 0%,#F3EEFD 100%);
+  --sidebar:rgba(255,255,255,.44);
+  --glass:rgba(255,255,255,.66);
+  --glass-2:rgba(255,255,255,.86);
+  --glass-3:rgba(124,70,200,.10);
+  --brd:rgba(74,38,124,.12);
+  --brd-2:rgba(74,38,124,.20);
+  --text:#1E1136; --text-2:rgba(30,17,54,.62); --text-3:rgba(30,17,54,.40);
+  --accent:#8B3FE0; --accent-2:#6A29C4; --accent-ink:#FFFFFF;
+  --cyan:#1F9BB0; --mint:#1E9E6A; --gold:#C8892A; --pink:#D4459B;
+  --glow:0 0 0 1px rgba(255,255,255,.6),0 14px 34px rgba(139,63,224,.30);
+  --shadow-window:0 40px 90px rgba(40,16,78,.24);
+  --shadow-card:0 1px 3px rgba(40,16,78,.06),0 14px 34px rgba(40,16,78,.10);
+  --shadow-cover:0 2px 6px rgba(40,16,78,.14),0 12px 28px rgba(40,16,78,.16);
+  --shadow-sheet:0 30px 70px rgba(40,16,78,.34);
+  --scrim:linear-gradient(180deg,rgba(248,245,255,0) 0%,rgba(248,245,255,.62) 58%,rgba(248,245,255,.92) 100%);
+  --scheme:light;
+}
+@media (prefers-color-scheme: light){
+  html:not([data-theme="dark"]):not([data-theme="light"]){
+    --bg-layers:radial-gradient(120% 95% at 10% -12%,#E5D6FF 0%,rgba(229,214,255,0) 55%),radial-gradient(95% 80% at 97% 6%,#D9E3FF 0%,rgba(217,227,255,0) 52%),radial-gradient(70% 60% at 60% 108%,#F0DAFB 0%,rgba(240,218,251,0) 60%),linear-gradient(163deg,#FAF7FF 0%,#F3EEFD 100%);
+    --sidebar:rgba(255,255,255,.44);
+    --glass:rgba(255,255,255,.66);
+    --glass-2:rgba(255,255,255,.86);
+    --glass-3:rgba(124,70,200,.10);
+    --brd:rgba(74,38,124,.12);
+    --brd-2:rgba(74,38,124,.20);
+    --text:#1E1136; --text-2:rgba(30,17,54,.62); --text-3:rgba(30,17,54,.40);
+    --accent:#8B3FE0; --accent-2:#6A29C4; --accent-ink:#FFFFFF;
+    --cyan:#1F9BB0; --mint:#1E9E6A; --gold:#C8892A; --pink:#D4459B;
+    --glow:0 0 0 1px rgba(255,255,255,.6),0 14px 34px rgba(139,63,224,.30);
+    --shadow-window:0 40px 90px rgba(40,16,78,.24);
+    --shadow-card:0 1px 3px rgba(40,16,78,.06),0 14px 34px rgba(40,16,78,.10);
+    --shadow-cover:0 2px 6px rgba(40,16,78,.14),0 12px 28px rgba(40,16,78,.16);
+    --shadow-sheet:0 30px 70px rgba(40,16,78,.34);
+    --scrim:linear-gradient(180deg,rgba(248,245,255,0) 0%,rgba(248,245,255,.62) 58%,rgba(248,245,255,.92) 100%);
+    --scheme:light;
+  }
+}
+body{margin:0;background:#150A2C}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent);text-decoration:underline}
+input,textarea,select,button{font:inherit;color:inherit;color-scheme:var(--scheme)}
+input::placeholder,textarea::placeholder{color:var(--text-3)}
+input:focus,textarea:focus,select:focus{outline:1.5px solid var(--accent);outline-offset:0}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--brd-2);border-radius:6px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes sheetIn{from{opacity:0;transform:translateY(-10px) scale(.985)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="width:1440px;height:920px;display:flex;position:relative;overflow:hidden;border-radius:14px;background:var(--bg-layers);color:var(--text);box-shadow:var(--shadow-window);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,sans-serif;font-size:13px;line-height:1.4;letter-spacing:-0.004em">
+
+  <sc-if value="{{ sbOpen }}" hint-placeholder-val="{{ true }}">
+  <div style="width:{{ sbW }};flex:none;position:relative;display:flex;flex-direction:column;background:var(--sidebar);backdrop-filter:blur(24px);border-right:1px solid var(--brd)">
+    <div onMouseDown="{{ startResize }}" title="Breite ziehen" style="position:absolute;top:0;bottom:0;right:-3px;width:7px;z-index:5;cursor:col-resize"></div>
+    <div style="height:54px;flex:none;display:flex;align-items:center;gap:8px;padding:0 20px">
+      <div style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#28C840"></div>
+    </div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:6px 12px 14px">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+        <div onClick="{{ f.onClick }}" style="display:flex;align-items:center;gap:11px;padding:8px 11px;margin-bottom:3px;border-radius:12px;cursor:default;transition:background 120ms ease,box-shadow 120ms ease;background:{{ f.bg }};box-shadow:{{ f.ring }}" style-hover="background:var(--glass-2)">
+          <div style="width:26px;height:26px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,{{ f.g1 }},{{ f.g2 }});box-shadow:0 3px 10px {{ f.g2 }}">
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ f.icon }}"></path></svg>
+          </div>
+          <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:{{ f.weight }};color:{{ f.fg }}">{{ f.label }}</div>
+          <div style="font-size:11.5px;color:var(--text-3);font-variant-numeric:tabular-nums">{{ f.count }}</div>
+        </div>
+      </sc-for>
+      <div style="padding:20px 11px 8px;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">Genres</div>
+      <sc-for list="{{ genres }}" as="g" hint-placeholder-count="10">
+        <div onClick="{{ g.onClick }}" style="display:flex;align-items:center;gap:12px;padding:6px 11px;margin-bottom:1px;border-radius:10px;cursor:default;transition:background 120ms ease;background:{{ g.bg }}" style-hover="background:var(--glass)">
+          <div style="width:8px;height:8px;flex:none;border-radius:3px;background:{{ g.dot }};box-shadow:0 0 10px {{ g.dot }}"></div>
+          <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:{{ g.weight }};color:{{ g.fg }}">{{ g.label }}</div>
+          <div style="font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums">{{ g.count }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="flex:none;padding:12px;border-top:1px solid var(--brd)">
+      <div onClick="{{ openImport }}" style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:11px;cursor:default;transition:background 120ms ease" style-hover="background:var(--glass)">
+        <div style="width:26px;height:26px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--glass-2);border:1px solid var(--brd)">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M8 2.5v7.5M5 7.5 8 10.5l3-3M3 12.5h10"></path></svg>
+        </div>
+        <div style="font-size:12.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Delicious Library importieren</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative">
+    <div style="height:54px;flex:none;display:flex;align-items:center;gap:10px;padding:0 26px">
+      <sc-if value="{{ sbClosed }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:8px;flex:none;margin-right:4px">
+          <div style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#28C840"></div>
+        </div>
+      </sc-if>
+      <div onClick="{{ toggleSidebar }}" title="Seitenleiste ein-/ausklappen" style="width:32px;height:32px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;cursor:default;border:1px solid var(--brd);background:{{ sbBtnBg }};transition:background 120ms ease" style-hover="background:var(--glass-2)">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" style="color:var(--text-2)"><rect x="2.2" y="3.2" width="11.6" height="9.6" rx="2"></rect><path d="M6.4 3.2v9.6" stroke-width="1.2"></path></svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;width:288px;height:32px;padding:0 12px;border-radius:11px;background:var(--glass);border:1px solid var(--brd);backdrop-filter:blur(18px)">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="flex:none;color:var(--text-3)"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3 3"></path></svg>
+        <input value="{{ q }}" onChange="{{ onSearch }}" placeholder="Titel oder Autor suchen" style="flex:1;min-width:0;border:0;background:transparent;font-size:13px;padding:0;outline:0" />
+        <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ clearSearch }}" style="flex:none;width:17px;height:17px;border-radius:50%;background:var(--glass-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:default;line-height:1">✕</div>
+        </sc-if>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:9px;height:32px;padding:0 12px;flex:none;border-radius:11px;background:var(--glass);border:1px solid var(--brd)">
+        <div onClick="{{ zoomOut }}" title="Kleiner" style="width:16px;height:16px;flex:none;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:default;color:var(--text-2);transition:background 120ms ease" style-hover="background:var(--glass-3);color:var(--text)">
+          <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 6h7"></path></svg>
+        </div>
+        <div ref="{{ zoomRef }}" onMouseDown="{{ onZoomDown }}" title="Zoom" style="position:relative;width:86px;height:14px;flex:none;display:flex;align-items:center;cursor:default">
+          <div style="width:100%;height:4px;border-radius:2px;background:var(--glass-3)"></div>
+          <div style="position:absolute;left:0;top:5px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--cyan),var(--accent));width:{{ zoomFill }}"></div>
+          <div style="position:absolute;top:1px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);left:{{ zoomThumb }}"></div>
+        </div>
+        <div onClick="{{ zoomIn }}" title="Größer" style="width:16px;height:16px;flex:none;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:default;color:var(--text-2);transition:background 120ms ease" style-hover="background:var(--glass-3);color:var(--text)">
+          <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 2.5v7M2.5 6h7"></path></svg>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums;width:40px;white-space:nowrap;text-align:right">{{ zoomPct }}</div>
+      </div>
+      <select value="{{ sort }}" onChange="{{ onSort }}" style="height:32px;padding:0 8px;border-radius:11px;border:1px solid var(--brd);background:var(--glass);font-size:12.5px;backdrop-filter:blur(18px)">
+        <option value="titel">Titel A–Z</option>
+        <option value="autor">Autor A–Z</option>
+        <option value="jahr">Jahr, neueste zuerst</option>
+        <option value="bewertung">Bewertung, beste zuerst</option>
+        <option value="gelesen">Zuletzt gelesen</option>
+      </select>
+      <div style="display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--glass);border:1px solid var(--brd)">
+        <div onClick="{{ setGrid }}" title="Cover-Grid" style="width:36px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:default;background:{{ gridBg }};transition:background 120ms ease">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+            <div style="width:5px;height:5px;border-radius:1.5px;background:{{ gridInk }}"></div>
+            <div style="width:5px;height:5px;border-radius:1.5px;background:{{ gridInk }}"></div>
+            <div style="width:5px;height:5px;border-radius:1.5px;background:{{ gridInk }}"></div>
+            <div style="width:5px;height:5px;border-radius:1.5px;background:{{ gridInk }}"></div>
+          </div>
+        </div>
+        <div onClick="{{ setList }}" title="Liste" style="width:36px;height:26px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:default;background:{{ listBg }};transition:background 120ms ease">
+          <div style="width:13px;height:1.8px;border-radius:1px;background:{{ listInk }}"></div>
+          <div style="width:13px;height:1.8px;border-radius:1px;background:{{ listInk }}"></div>
+          <div style="width:13px;height:1.8px;border-radius:1px;background:{{ listInk }}"></div>
+        </div>
+      </div>
+      <div onClick="{{ cycleTheme }}" title="Erscheinungsbild" style="width:32px;height:32px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;cursor:default;border:1px solid var(--brd);background:var(--glass);font-size:13px;color:var(--text-2)">{{ themeGlyph }}</div>
+    </div>
+
+    <div style="flex:none;padding:4px 26px 0;display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+      <div style="font-size:36px;font-weight:300;letter-spacing:-0.03em;line-height:1.05">{{ pageTitle }}</div>
+      <div style="display:flex;align-items:center;gap:12px;padding-bottom:7px">
+        <div style="font-size:12.5px;color:var(--text-3);white-space:nowrap;font-variant-numeric:tabular-nums">{{ pageMeta }}</div>
+        <div onClick="{{ toggleStats }}" style="display:flex;align-items:center;gap:6px;height:26px;padding:0 11px;flex:none;border-radius:9px;cursor:default;border:1px solid var(--brd);background:{{ statsBtnBg }};font-size:11.5px;color:var(--text-2);white-space:nowrap;transition:background 120ms ease" style-hover="background:var(--glass-2);color:var(--text)">
+          <span>Statistik</span>
+          <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ statsArrow }}"><path d="M2.5 4.5 6 8l3.5-3.5"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ statsOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:none;display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr) minmax(0,1fr);gap:14px;padding:12px 26px 16px">
+      <div style="position:relative;overflow:hidden;padding:16px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--brd);box-shadow:var(--shadow-card);backdrop-filter:blur(20px);display:flex;align-items:center;gap:20px">
+        <div style="position:absolute;width:230px;height:230px;right:-70px;top:-80px;border-radius:50%;background:radial-gradient(circle,rgba(79,216,232,.30) 0%,rgba(79,216,232,0) 68%)"></div>
+        <div style="position:relative;width:84px;height:84px;flex:none;border-radius:50%;background:conic-gradient(from -90deg,var(--cyan) 0deg,var(--accent) {{ readDeg }},var(--glass-3) {{ readDeg }});box-shadow:0 0 26px rgba(180,92,255,.34)">
+          <div style="position:absolute;inset:7px;border-radius:50%;background:var(--bg-layers);display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:20px;font-weight:400;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ readPct }}</div>
+            <div style="font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">gelesen</div>
+          </div>
+        </div>
+        <div style="position:relative;min-width:0;flex:1">
+          <div style="font-size:12.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Meine Bibliothek</div>
+          <div style="margin-top:2px;font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1.08;font-variant-numeric:tabular-nums">{{ statTotal }}</div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mint);white-space:nowrap">
+            <span style="font-size:9px;flex:none">▲</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">{{ statRead }} gelesen</span>
+          </div>
+          <div style="margin-top:10px;height:7px;border-radius:4px;overflow:hidden;display:flex;gap:2px;width:100%;max-width:230px">
+            <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,var(--mint),var(--cyan));width:{{ barRead }}"></div>
+            <div style="height:100%;border-radius:4px;background:var(--glass-3);flex:1"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative;overflow:hidden;padding:16px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--brd);box-shadow:var(--shadow-card);backdrop-filter:blur(20px)">
+        <div style="font-size:12.5px;color:var(--text-2)">Eigene Bewertungen</div>
+        <div style="margin-top:2px;font-size:28px;font-weight:300;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ statRatedCount }}</div>
+        <div style="margin-top:4px;font-size:12.5px;color:var(--gold);letter-spacing:1px">{{ statAvgStars }}<span style="color:var(--text-3);letter-spacing:normal;margin-left:6px">Ø {{ statAvg }}</span></div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+          <sc-for list="{{ ratingBars }}" as="r" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:34px;flex:none;font-size:10.5px;color:var(--text-3);letter-spacing:.5px">{{ r.label }}</div>
+              <div style="flex:1;height:5px;border-radius:3px;background:var(--glass-3);overflow:hidden">
+                <div style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--pink));width:{{ r.w }}"></div>
+              </div>
+              <div style="width:30px;flex:none;text-align:right;font-size:10.5px;color:var(--text-3);font-variant-numeric:tabular-nums">{{ r.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="position:relative;overflow:hidden;padding:16px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--brd);box-shadow:var(--shadow-card);backdrop-filter:blur(20px)">
+        <div style="position:absolute;width:190px;height:190px;right:-60px;bottom:-80px;border-radius:50%;background:radial-gradient(circle,rgba(255,107,193,.26) 0%,rgba(255,107,193,0) 68%)"></div>
+        <div style="position:relative;font-size:12.5px;color:var(--text-2)">Zuletzt gelesen</div>
+        <div style="position:relative;margin-top:10px;display:flex;flex-direction:column;gap:7px">
+          <sc-for list="{{ recent }}" as="r" hint-placeholder-count="4">
+            <div onClick="{{ r.onClick }}" style="display:flex;align-items:center;gap:10px;cursor:default;border-radius:8px;padding:2px;margin:-2px;transition:background 120ms ease" style-hover="background:var(--glass-2)">
+              <div style="width:20px;height:29px;flex:none;border-radius:3px;box-shadow:var(--shadow-cover);background:{{ r.tint }}"></div>
+              <div style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</div>
+              <div style="flex:none;font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.date }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+    <sc-if value="{{ statsClosed }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;height:14px"></div>
+    </sc-if>
+
+    <div ref="{{ scrollRef }}" onScroll="{{ onScroll }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 26px 104px">
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:90px 0;text-align:center">
+          <div style="width:64px;height:64px;border-radius:20px;background:linear-gradient(150deg,var(--accent),var(--accent-2));box-shadow:var(--glow);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 16 16" width="28" height="28" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3 3"></path></svg>
+          </div>
+          <div style="font-size:17px;font-weight:400">Keine Treffer</div>
+          <div style="font-size:13px;color:var(--text-2);max-width:300px">Für „{{ q }}“ ist in dieser Auswahl kein Buch vorhanden.</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax({{ coverW }}px,1fr));gap:26px 20px;align-content:start">
+          <sc-for list="{{ items }}" as="b" hint-placeholder-count="18">
+            <div onClick="{{ b.onClick }}" style="cursor:default;padding:8px;margin:-8px;border-radius:18px;background:{{ b.selBg }};box-shadow:{{ b.selRing }};transition:background 120ms ease,box-shadow 120ms ease" style-hover="background:var(--glass)">
+              <div style="aspect-ratio:2/3;border-radius:11px;overflow:hidden;position:relative;box-shadow:var(--shadow-cover);padding:14px 13px;display:flex;flex-direction:column;justify-content:space-between;background:{{ b.tint }}">
+                <div style="position:absolute;top:0;bottom:0;left:0;width:6px;background:linear-gradient(90deg,rgba(0,0,0,.30),rgba(255,255,255,.10))"></div>
+                <div style="position:absolute;inset:0;background:linear-gradient(200deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,0) 40%),linear-gradient(180deg,rgba(0,0,0,.30) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,0) 66%,rgba(0,0,0,.30) 100%)"></div>
+                <div style="position:relative;font-size:13px;font-weight:600;line-height:1.24;color:rgba(255,255,255,.97);text-wrap:pretty;padding-left:7px;text-shadow:0 1px 3px rgba(0,0,0,.25)">{{ b.title }}</div>
+                <div style="position:relative;font-size:8.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.74);padding-left:7px">{{ b.author }}</div>
+              </div>
+              <div style="margin-top:10px;font-size:12.5px;font-weight:450;line-height:1.32;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">{{ b.title }}</div>
+              <div style="margin-top:2px;font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.author }}</div>
+              <div style="margin-top:4px;font-size:10.5px;color:var(--gold);letter-spacing:1px;height:14px">{{ b.stars }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="display:flex;align-items:center;gap:16px;padding:0 16px 8px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">
+            <div style="width:{{ thumbW }};flex:none"></div>
+            <div style="flex:1;min-width:0">Titel</div>
+            <div style="width:130px;flex:none">Genre</div>
+            <div style="width:48px;flex:none">Jahr</div>
+            <div style="width:74px;flex:none">Bewertung</div>
+            <div style="width:96px;flex:none;text-align:right">Gelesen</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <sc-for list="{{ items }}" as="b" hint-placeholder-count="12">
+              <div onClick="{{ b.onClick }}" style="display:flex;align-items:center;gap:16px;height:{{ rowH }};padding:0 16px;border-radius:13px;cursor:default;background:{{ b.selBgRow }};box-shadow:{{ b.selRing }};transition:background 120ms ease,box-shadow 120ms ease" style-hover="background:var(--glass)">
+                <div style="width:{{ thumbW }};height:{{ thumbH }};flex:none;border-radius:4px;position:relative;overflow:hidden;box-shadow:var(--shadow-cover);background:{{ b.tint }}">
+                  <div style="position:absolute;top:0;bottom:0;left:0;width:3px;background:rgba(0,0,0,.28)"></div>
+                  <div style="position:absolute;inset:0;background:linear-gradient(200deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 45%)"></div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;font-weight:450;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.title }}</div>
+                  <div style="font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.author }}</div>
+                </div>
+                <div style="width:130px;flex:none;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);overflow:hidden">
+                  <div style="width:6px;height:6px;flex:none;border-radius:2px;background:{{ b.dot }}"></div>
+                  <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.genre }}</div>
+                </div>
+                <div style="width:48px;flex:none;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums">{{ b.year }}</div>
+                <div style="width:74px;flex:none;font-size:11px;color:var(--gold);letter-spacing:1px">{{ b.stars }}</div>
+                <div style="width:96px;flex:none;font-size:12px;color:var(--text-3);text-align:right;font-variant-numeric:tabular-nums">{{ b.readLabel }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="position:absolute;left:0;right:0;bottom:0;height:112px;pointer-events:none;background:var(--scrim)"></div>
+    <div onClick="{{ openIsbn }}" style="position:absolute;left:50%;bottom:26px;transform:translateX(-50%);height:52px;padding:0 34px;border-radius:26px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:default;background:linear-gradient(150deg,var(--accent),var(--accent-2));color:var(--accent-ink);font-size:14.5px;font-weight:500;box-shadow:var(--glow);transition:filter 120ms ease,transform 120ms ease" style-hover="filter:brightness(1.1)">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"></path></svg>
+      <span>Buch hinzufügen</span>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+    <div style="width:352px;flex:none;display:flex;flex-direction:column;background:var(--sidebar);backdrop-filter:blur(24px);border-left:1px solid var(--brd)">
+      <div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 24px">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">Details</div>
+        <div onClick="{{ closeSel }}" style="width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:default;color:var(--text-2);font-size:12px;transition:background 120ms ease" style-hover="background:var(--glass-2)">✕</div>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:2px 24px 28px">
+        <div style="display:flex;justify-content:center;padding:8px 0 22px">
+          <div style="width:158px;aspect-ratio:2/3;border-radius:14px;position:relative;overflow:hidden;box-shadow:var(--shadow-sheet);padding:17px 16px;display:flex;flex-direction:column;justify-content:space-between;background:{{ sel.tint }}">
+            <div style="position:absolute;top:0;bottom:0;left:0;width:7px;background:linear-gradient(90deg,rgba(0,0,0,.30),rgba(255,255,255,.10))"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(200deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 40%),linear-gradient(180deg,rgba(0,0,0,.30) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,0) 66%,rgba(0,0,0,.30) 100%)"></div>
+            <div style="position:relative;font-size:15px;font-weight:600;line-height:1.24;color:rgba(255,255,255,.97);padding-left:8px;text-wrap:pretty;text-shadow:0 1px 3px rgba(0,0,0,.25)">{{ sel.title }}</div>
+            <div style="position:relative;font-size:9px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.74);padding-left:8px">{{ sel.author }}</div>
+          </div>
+        </div>
+        <div style="font-size:21px;font-weight:400;letter-spacing:-0.02em;line-height:1.24;text-wrap:pretty">{{ sel.title }}</div>
+        <div style="margin-top:5px;font-size:13px;color:var(--text-2)">{{ sel.author }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px">
+          <div style="padding:5px 11px;border-radius:9px;background:var(--glass);border:1px solid var(--brd);font-size:11.5px;color:var(--text-2)">{{ sel.genre }}</div>
+          <div style="padding:5px 11px;border-radius:9px;background:var(--glass);border:1px solid var(--brd);font-size:11.5px;color:var(--text-2)">{{ sel.year }}</div>
+          <div style="padding:5px 11px;border-radius:9px;background:var(--glass);border:1px solid var(--brd);font-size:11.5px;color:var(--text-2)">{{ sel.pages }} Seiten</div>
+        </div>
+
+        <div style="margin-top:20px;padding:16px 18px;border-radius:18px;background:var(--glass);border:1px solid var(--brd);box-shadow:var(--shadow-card)">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">Meine Bewertung</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:10px">
+            <sc-for list="{{ selStars }}" as="s" hint-placeholder-count="5">
+              <div onClick="{{ s.onClick }}" style="font-size:25px;line-height:1;cursor:default;transition:color 120ms ease,text-shadow 120ms ease;color:{{ s.color }};text-shadow:{{ s.glow }}">★</div>
+            </sc-for>
+            <div style="flex:1"></div>
+            <div onClick="{{ clearRating }}" style="font-size:11.5px;color:var(--text-3);cursor:default">zurücksetzen</div>
+          </div>
+          <div style="margin-top:18px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">Gelesen am</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+            <input type="date" value="{{ sel.readOn }}" onChange="{{ onReadDate }}" style="flex:1;min-width:0;height:33px;padding:0 11px;border-radius:10px;border:1px solid var(--brd);background:var(--glass-2);font-size:12.5px" />
+            <div onClick="{{ markToday }}" style="flex:none;height:33px;padding:0 13px;border-radius:10px;display:flex;align-items:center;cursor:default;font-size:12px;color:var(--text-2);border:1px solid var(--brd);transition:background 120ms ease" style-hover="background:var(--glass-2);color:var(--text)">Heute</div>
+          </div>
+          <div style="margin-top:18px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)">Kommentar</div>
+          <textarea value="{{ sel.comment }}" onChange="{{ onComment }}" placeholder="Notiz zu diesem Buch …" style="margin-top:9px;width:100%;box-sizing:border-box;height:100px;resize:none;padding:11px 13px;border-radius:13px;border:1px solid var(--brd);background:var(--glass-2);font-size:12.5px;line-height:1.5"></textarea>
+        </div>
+        <div style="margin-top:16px;font-size:11.5px;color:var(--text-3)">ISBN {{ sel.isbn }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showIsbn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:20;background:rgba(12,5,28,.52);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding-top:130px">
+      <div style="width:466px;padding:28px;border-radius:24px;background:var(--glass-2);border:1px solid var(--brd-2);box-shadow:var(--shadow-sheet);backdrop-filter:blur(40px);animation:sheetIn 120ms ease-out">
+        <div style="display:flex;align-items:center;gap:13px">
+          <div style="width:38px;height:38px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(180,92,255,.4)">
+            <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"></path></svg>
+          </div>
+          <div>
+            <div style="font-size:17px;font-weight:500;letter-spacing:-0.01em">Buch per ISBN hinzufügen</div>
+            <div style="margin-top:2px;font-size:12.5px;color:var(--text-2)">Titel, Autor und Cover werden übernommen.</div>
+          </div>
+        </div>
+        <input value="{{ isbn }}" onChange="{{ onIsbn }}" placeholder="978-3-…" style="margin-top:20px;width:100%;box-sizing:border-box;height:40px;padding:0 14px;border-radius:13px;border:1px solid var(--brd-2);background:var(--glass);font-size:14px;font-variant-numeric:tabular-nums" />
+        <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px">
+          <div onClick="{{ closeDialog }}" style="height:36px;padding:0 17px;border-radius:12px;display:flex;align-items:center;cursor:default;font-size:13px;color:var(--text-2);border:1px solid var(--brd);transition:background 120ms ease" style-hover="background:var(--glass);color:var(--text)">Abbrechen</div>
+          <div onClick="{{ addIsbn }}" style="height:36px;padding:0 20px;border-radius:12px;display:flex;align-items:center;cursor:default;font-size:13px;font-weight:500;background:linear-gradient(150deg,var(--accent),var(--accent-2));color:var(--accent-ink);box-shadow:0 8px 22px rgba(180,92,255,.34);transition:filter 120ms ease" style-hover="filter:brightness(1.1)">Hinzufügen</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showImport }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:20;background:rgba(12,5,28,.52);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding-top:120px">
+      <div style="width:506px;padding:28px;border-radius:24px;background:var(--glass-2);border:1px solid var(--brd-2);box-shadow:var(--shadow-sheet);backdrop-filter:blur(40px);animation:sheetIn 120ms ease-out">
+        <div style="font-size:18px;font-weight:500;letter-spacing:-0.01em">Aus Delicious Library importieren</div>
+        <div style="margin-top:5px;font-size:12.5px;color:var(--text-2)">{{ importHint }}</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:20px;padding:13px 15px;border-radius:16px;background:var(--glass);border:1px solid var(--brd)">
+          <div style="width:32px;height:42px;flex:none;border-radius:4px;box-shadow:var(--shadow-cover);background:linear-gradient(150deg,#4FD8E8,#2E3FA8)"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;font-weight:450;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Library.dlibrary</div>
+            <div style="font-size:11.5px;color:var(--text-3)">1.800 Einträge · 214 MB</div>
+          </div>
+          <div style="flex:none;height:29px;padding:0 13px;border-radius:10px;display:flex;align-items:center;cursor:default;font-size:12px;color:var(--text-2);border:1px solid var(--brd-2);transition:background 120ms ease" style-hover="background:var(--glass-2);color:var(--text)">Andere Datei …</div>
+        </div>
+        <div style="margin-top:20px;height:7px;border-radius:4px;background:var(--glass-3);overflow:hidden">
+          <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--accent));transition:width 140ms linear;box-shadow:0 0 14px rgba(180,92,255,.5);width:{{ importPct }}"></div>
+        </div>
+        <div style="margin-top:9px;font-size:11.5px;color:var(--text-3);font-variant-numeric:tabular-nums">{{ importStatus }}</div>
+        <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px">
+          <div onClick="{{ closeDialog }}" style="height:36px;padding:0 17px;border-radius:12px;display:flex;align-items:center;cursor:default;font-size:13px;color:var(--text-2);border:1px solid var(--brd);transition:background 120ms ease" style-hover="background:var(--glass);color:var(--text)">{{ importCancel }}</div>
+          <div onClick="{{ startImport }}" style="height:36px;padding:0 20px;border-radius:12px;display:flex;align-items:center;cursor:default;font-size:13px;font-weight:500;background:linear-gradient(150deg,var(--accent),var(--accent-2));color:var(--accent-ink);box-shadow:0 8px 22px rgba(180,92,255,.34);opacity:{{ importBtnOpacity }};transition:filter 120ms ease" style-hover="filter:brightness(1.1)">{{ importBtn }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2A1150"/><rect x="29" y="24" width="17" height="52" rx="2" fill="#B45CFF"/><rect x="52" y="24" width="17" height="52" rx="2" fill="#4FD8E8"/></svg></template>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:920},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Darstellung&quot;},&quot;coverWidth&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:110,&quot;max&quot;:220,&quot;step&quot;:2,&quot;default&quot;:146,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Darstellung&quot;}}">
+const NF = new Intl.NumberFormat('de-DE');
+const TINTS = [
+  ['#8B5CF6','#3B1A8E'],['#FF6B9D','#8E2A63'],['#3AC8E0','#175E8C'],['#FFB347','#B8531A'],['#56E39F','#177A5A'],
+  ['#C36BFF','#5B1E9E'],['#FF8A6B','#A83A5C'],['#6BA8FF','#243E9E'],['#E8C24F','#8A6516'],['#FF6BC1','#6E1E8E'],
+  ['#4FD8E8','#2E3FA8'],['#A0E85C','#3E7A18']
+];
+const GENRES = ['Roman','Sachbuch','Krimi','Lyrik','Geschichte','Philosophie','Kunst','Science-Fiction','Biografie','Reise'];
+const GDOT = ['#B45CFF','#4FD8E8','#FF6BC1','#FFC24F','#6BA8FF','#56E39F','#FF8A6B','#A0E85C','#C36BFF','#3AC8E0'];
+const FDEF = [
+  { k:'alle', label:'Alle Bücher', icon:'M3.5 3h4.5v10H3.5zM9 3.4l3.2.8-2.4 9.4-3.2-.8', g1:'#B45CFF', g2:'rgba(123,59,232,.55)' },
+  { k:'gelesen', label:'Gelesen', icon:'M3.5 8.4 6.4 11.3 12.5 5', g1:'#56E39F', g2:'rgba(23,122,90,.55)' },
+  { k:'ungelesen', label:'Ungelesen', icon:'M8 2.6a5.4 5.4 0 1 0 .01 10.8A5.4 5.4 0 0 0 8 2.6M8 5.4v3.2', g1:'#FFB347', g2:'rgba(184,83,26,.55)' },
+  { k:'bewertet', label:'Bewertet', icon:'M8 2.6l1.75 3.6 3.95.55-2.85 2.8.7 3.9L8 11.6l-3.55 1.85.7-3.9L2.3 6.75l3.95-.55z', g1:'#FFC24F', g2:'rgba(138,101,22,.55)' }
+];
+const H1 = ['Die Stille','Der Sommer','Das Licht','Die Reise','Der Fluss','Die Karte','Das Archiv','Der Norden','Die Stunde','Das Haus','Der Garten','Die Brücke','Das Fenster','Der Hafen','Die Schrift','Das Ufer','Der Schatten','Die Kammer','Das Verzeichnis','Der Winter','Die Ordnung','Das Gewicht','Der Umweg','Die Zeichen','Das Signal','Der Aufbruch','Die Wolke','Das Muster','Der Kompass','Die Zählung','Das Inventar','Der Anfang','Die Rückkehr','Das Gedächtnis','Der Abdruck','Die Sammlung'];
+const H2 = ['nach dem Sturm','im Winter','der Erinnerung','aus Papier','ohne Ende','des Nordens','in Fragmenten','am Rand','der langen Jahre','vor dem Regen','zwischen den Zeilen','über dem Tal','einer Familie','im Gegenlicht','der kleinen Dinge','aus Glas','hinter dem Deich','der zweiten Stimme','im Oktober','ohne Karte','am Küchentisch','der offenen Türen','im Treppenhaus','aus zweiter Hand','vor der Abfahrt','der leisen Jahre','unter dem Pflaster','im Halbschatten','einer langen Woche','aus dem Süden','der doppelten Böden','vor Mitternacht','im Kartenhaus','der letzten Auflage','am Ende der Straße','ohne Adresse'];
+const MID = ['','','',' und die Zeit',' der Anderen'];
+const FN = ['Anna','Jonas','Marlene','Henrik','Clara','Tobias','Ingrid','Paul','Elisa','Lars','Ruth','Felix','Judith','Bastian','Nora','Simon','Katharina','Milan','Greta','Ole','Vera','Theo','Selma','Malte'];
+const LN = ['Brandt','Kessler','Ohlsen','Radtke','Vogler','Steinbach','Ferber','Lindqvist','Marek','Hoffmann','Sander','Brauer','Wolfram','Tessler','Nachtigall','Bergmann','Krieger','Ahlers','Petzold','Sturm','Reimann','Halvorsen','Meinhard','Duval'];
+const SORTS = { titel:'Titel A–Z', autor:'Autor A–Z', jahr:'Jahr, neueste zuerst', bewertung:'Bewertung, beste zuerst', gelesen:'Zuletzt gelesen' };
+const PAGE = 60;
+
+class Component extends DCLogic {
+  state = { filter:'alle', genre:null, q:'', sort:'titel', view:'grid', sel:null, limit:PAGE, dialog:null, isbn:'', imp:0, edits:{}, extra:[], theme:null,
+    sbOpen:true, sbW:252, statsOpen:true, zoom:1 };
+
+  ZMIN = 0.7; ZMAX = 1.7;
+
+  clampZoom(z){ return Math.min(this.ZMAX, Math.max(this.ZMIN, Math.round(z * 100) / 100)); }
+  setZoom(z){ this.setState({ zoom: this.clampZoom(z) }); }
+  stepZoom(d){ this.setState(s => ({ zoom: this.clampZoom(s.zoom + d) })); }
+
+  startResize = e => {
+    e.preventDefault();
+    const x0 = e.clientX, w0 = this.state.sbW;
+    const move = ev => {
+      const w = Math.min(400, Math.max(180, w0 + ev.clientX - x0));
+      this.setState({ sbW:w });
+    };
+    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); document.body.style.cursor = ''; };
+    document.body.style.cursor = 'col-resize';
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
+
+  onZoomDown = e => {
+    e.preventDefault();
+    const el = this._zoom;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const apply = cx => this.setZoom(this.ZMIN + Math.min(1, Math.max(0, (cx - r.left) / r.width)) * (this.ZMAX - this.ZMIN));
+    apply(e.clientX);
+    const move = ev => apply(ev.clientX);
+    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
+
+  componentDidMount(){ this.applyTheme(); }
+  componentDidUpdate(p){ if (p.theme !== this.props.theme || p.accent !== this.props.accent) this.applyTheme(); }
+  componentWillUnmount(){ clearInterval(this._t); }
+
+  applyTheme(){
+    const t = this.state.theme || this.props.theme || 'auto';
+    if (t === 'auto') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+  }
+
+  get base(){
+    if (this._base) return this._base;
+    let s = 20260804;
+    const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const out = [];
+    for (let i = 0; i < 1800; i++){
+      const title = H1[Math.floor(r()*H1.length)] + MID[Math.floor(r()*MID.length)] + ' ' + H2[Math.floor(r()*H2.length)];
+      const author = FN[Math.floor(r()*FN.length)] + ' ' + LN[Math.floor(r()*LN.length)];
+      const gi = Math.floor(r()*GENRES.length);
+      const ti = Math.floor(r()*TINTS.length);
+      const read = r() < 0.1733;
+      let readOn = '';
+      if (read){
+        const y = 2013 + Math.floor(r()*14);
+        const m = 1 + Math.floor(r() * (y === 2026 ? 8 : 12)), d = 1 + Math.floor(r()*28);
+        readOn = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      }
+      out.push({
+        id:'b'+i, title, author, genre:GENRES[gi], gi,
+        year:1958 + Math.floor(r()*68), pages:120 + Math.floor(r()*620),
+        rating: read ? (r() < .82 ? 3 + Math.floor(r()*3) : 1 + Math.floor(r()*2)) : 0,
+        readOn, comment:'',
+        isbn:'978-3-' + (100 + Math.floor(r()*899)) + '-' + (10000 + Math.floor(r()*89999)) + '-' + Math.floor(r()*10),
+        tint:'linear-gradient(150deg,' + TINTS[ti][0] + ' 0%,' + TINTS[ti][1] + ' 100%)'
+      });
+    }
+    this._base = out;
+    return out;
+  }
+
+  merged(){
+    const e = this.state.edits;
+    return this.state.extra.concat(this.base).map(b => e[b.id] ? Object.assign({}, b, e[b.id]) : b);
+  }
+
+  edit(id, patch){
+    this.setState(s => ({ edits: Object.assign({}, s.edits, { [id]: Object.assign({}, s.edits[id], patch) }) }));
+  }
+
+  pick(patch){ this.setState(Object.assign({ limit:PAGE }, patch)); if (this._sc) this._sc.scrollTop = 0; }
+
+  startImport(){
+    if (this.state.imp) return;
+    this.setState({ imp:1 });
+    clearInterval(this._t);
+    let n = 0;
+    this._t = setInterval(() => {
+      n += 1;
+      if (n >= 12){ clearInterval(this._t); this.setState({ imp:14 }); }
+      else this.setState({ imp: 1 + n });
+    }, 130);
+  }
+
+  stars(n){ return n ? '★★★★★'.slice(0, n) + '☆☆☆☆☆'.slice(0, 5 - n) : ''; }
+  dmy(s){ return s ? s.slice(8,10) + '.' + s.slice(5,7) + '.' + s.slice(0,4) : '–'; }
+
+  renderVals(){
+    const st = this.state, all = this.merged();
+    const q = st.q.trim().toLowerCase();
+    const total = all.length;
+    const readAll = all.filter(b => b.readOn);
+    const ratedAll = all.filter(b => b.rating > 0);
+
+    let rows = all;
+    if (st.filter === 'gelesen') rows = rows.filter(b => b.readOn);
+    else if (st.filter === 'ungelesen') rows = rows.filter(b => !b.readOn);
+    else if (st.filter === 'bewertet') rows = rows.filter(b => b.rating > 0);
+    if (st.genre !== null) rows = rows.filter(b => b.gi === st.genre);
+    if (q) rows = rows.filter(b => b.title.toLowerCase().indexOf(q) >= 0 || b.author.toLowerCase().indexOf(q) >= 0);
+
+    const s = st.sort;
+    rows = rows.slice().sort((a, b) =>
+      s === 'autor' ? a.author.localeCompare(b.author,'de') || a.title.localeCompare(b.title,'de')
+      : s === 'jahr' ? b.year - a.year || a.title.localeCompare(b.title,'de')
+      : s === 'bewertung' ? b.rating - a.rating || a.title.localeCompare(b.title,'de')
+      : s === 'gelesen' ? (b.readOn||'').localeCompare(a.readOn||'') || a.title.localeCompare(b.title,'de')
+      : a.title.localeCompare(b.title,'de'));
+
+    const shown = rows.slice(0, st.limit);
+    const mk = b => ({
+      title:b.title, author:b.author, genre:b.genre, year:b.year, tint:b.tint, dot:GDOT[b.gi],
+      stars:this.stars(b.rating), readLabel:this.dmy(b.readOn),
+      selBg: st.sel === b.id ? 'var(--glass-2)' : 'transparent',
+      selBgRow: st.sel === b.id ? 'var(--glass-2)' : 'transparent',
+      selRing: st.sel === b.id ? '0 0 0 1px var(--brd-2), 0 10px 30px rgba(0,0,0,.22)' : 'none',
+      onClick: () => this.setState({ sel:b.id })
+    });
+
+    const fcount = { alle:total, gelesen:readAll.length, ungelesen:total - readAll.length, bewertet:ratedAll.length };
+    const filters = FDEF.map(f => {
+      const on = st.filter === f.k && st.genre === null;
+      return { label:f.label, icon:f.icon, g1:f.g1, g2:f.g2, count:NF.format(fcount[f.k]),
+        bg:on ? 'var(--glass-2)' : 'transparent', ring:on ? '0 0 0 1px var(--brd-2)' : 'none',
+        fg:on ? 'var(--text)' : 'var(--text-2)', weight:on ? 560 : 450,
+        onClick:() => this.pick({ filter:f.k, genre:null }) };
+    });
+    const gc = new Array(GENRES.length).fill(0);
+    all.forEach(b => gc[b.gi]++);
+    const genres = GENRES.map((g, i) => {
+      const on = st.genre === i;
+      return { label:g, count:NF.format(gc[i]), dot:GDOT[i],
+        bg:on ? 'var(--glass-2)' : 'transparent',
+        fg:on ? 'var(--text)' : 'var(--text-2)', weight:on ? 560 : 450,
+        onClick:() => this.pick({ genre: on ? null : i }) };
+    });
+
+    const selB = st.sel ? all.find(b => b.id === st.sel) : null;
+    const pct = Math.round(readAll.length / total * 100);
+    const avg = ratedAll.length ? (ratedAll.reduce((a, b) => a + b.rating, 0) / ratedAll.length) : 0;
+    const dist = [5,4,3,2,1].map(n => ({ n, c: ratedAll.filter(b => b.rating === n).length }));
+    const distMax = Math.max(1, ...dist.map(d => d.c));
+    const theme = st.theme || this.props.theme || 'auto';
+    const imp = st.imp;
+    const title = st.genre !== null ? GENRES[st.genre] : FDEF.find(f => f.k === st.filter).label;
+
+    return {
+      filters, genres,
+      q:st.q, hasQuery:!!st.q,
+      onSearch:e => this.pick({ q:e.target.value }),
+      clearSearch:() => this.pick({ q:'' }),
+      sort:st.sort, onSort:e => this.pick({ sort:e.target.value }),
+      isGrid:st.view === 'grid', isList:st.view === 'list',
+      setGrid:() => this.setState({ view:'grid' }), setList:() => this.setState({ view:'list' }),
+      gridBg:st.view === 'grid' ? 'var(--glass-3)' : 'transparent',
+      listBg:st.view === 'list' ? 'var(--glass-3)' : 'transparent',
+      gridInk:st.view === 'grid' ? 'var(--text)' : 'var(--text-3)',
+      listInk:st.view === 'list' ? 'var(--text)' : 'var(--text-3)',
+      themeGlyph: theme === 'auto' ? '◐' : theme === 'light' ? '○' : '●',
+      cycleTheme:() => this.setState({ theme: theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto' }, () => this.applyTheme()),
+      scrimOpacity: theme === 'light' ? 0 : 1,
+
+      pageTitle:title,
+      pageMeta:NF.format(rows.length) + ' von ' + NF.format(total) + ' Titeln · ' + SORTS[st.sort],
+
+      sbOpen:st.sbOpen, sbClosed:!st.sbOpen, sbW:st.sbW + 'px',
+      sbBtnBg: st.sbOpen ? 'var(--glass)' : 'var(--glass-3)',
+      toggleSidebar:() => this.setState({ sbOpen:!st.sbOpen }),
+      startResize:this.startResize,
+      statsOpen:st.statsOpen, statsClosed:!st.statsOpen,
+      statsBtnBg: st.statsOpen ? 'var(--glass)' : 'transparent',
+      statsArrow: st.statsOpen ? 'rotate(180deg)' : 'none',
+      toggleStats:() => this.setState({ statsOpen:!st.statsOpen }),
+      zoomRef:el => { this._zoom = el; },
+      onZoomDown:this.onZoomDown,
+      zoomIn:() => this.stepZoom(0.1),
+      zoomOut:() => this.stepZoom(-0.1),
+      zoomPct:Math.round(st.zoom * 100) + ' %',
+      zoomFill:Math.round((st.zoom - this.ZMIN) / (this.ZMAX - this.ZMIN) * 100) + '%',
+      zoomThumb:'calc(' + Math.round((st.zoom - this.ZMIN) / (this.ZMAX - this.ZMIN) * 100) + '% - ' + Math.round((st.zoom - this.ZMIN) / (this.ZMAX - this.ZMIN) * 12) + 'px)',
+      rowH:Math.round(58 * st.zoom) + 'px',
+      thumbW:Math.round(34 * st.zoom) + 'px',
+      thumbH:Math.round(50 * st.zoom) + 'px',
+
+      readDeg:(pct * 3.6) + 'deg', readPct:pct + ' %', barRead:pct + '%',
+      statTotal:NF.format(total), statRead:NF.format(readAll.length),
+      statRatedCount:NF.format(ratedAll.length),
+      statAvg:avg.toFixed(1).replace('.', ','),
+      statAvgStars:this.stars(Math.round(avg)),
+      ratingBars:dist.map(d => ({ label:'★'.repeat(d.n), n:NF.format(d.c), w:Math.round(d.c / distMax * 100) + '%' })),
+      recent:readAll.slice().sort((a, b) => b.readOn.localeCompare(a.readOn)).slice(0, 4).map(b => ({
+        title:b.title, date:this.dmy(b.readOn), tint:b.tint, onClick:() => this.setState({ sel:b.id })
+      })),
+
+      coverW:Math.round((this.props.coverWidth ?? 146) * st.zoom), items:shown.map(mk), isEmpty:rows.length === 0,
+      scrollRef:el => { this._sc = el; },
+      onScroll:e => {
+        const t = e.currentTarget;
+        if (st.limit < rows.length && t.scrollHeight - t.scrollTop - t.clientHeight < 700) this.setState({ limit:st.limit + PAGE });
+      },
+
+      hasSel:!!selB,
+      sel: selB ? { title:selB.title, author:selB.author, genre:selB.genre, year:selB.year, pages:NF.format(selB.pages),
+        tint:selB.tint, isbn:selB.isbn, readOn:selB.readOn, comment:selB.comment } : {},
+      selStars: [1,2,3,4,5].map(i => {
+        const on = selB && selB.rating >= i;
+        return { color: on ? 'var(--gold)' : 'var(--glass-3)', glow: on ? '0 0 12px rgba(255,194,79,.55)' : 'none',
+          onClick:() => selB && this.edit(selB.id, { rating:i }) };
+      }),
+      clearRating:() => selB && this.edit(selB.id, { rating:0 }),
+      onReadDate:e => selB && this.edit(selB.id, { readOn:e.target.value }),
+      markToday:() => selB && this.edit(selB.id, { readOn:new Date().toISOString().slice(0, 10) }),
+      onComment:e => selB && this.edit(selB.id, { comment:e.target.value }),
+      closeSel:() => this.setState({ sel:null }),
+
+      showIsbn:st.dialog === 'isbn', showImport:st.dialog === 'import',
+      openIsbn:() => this.setState({ dialog:'isbn', isbn:'' }),
+      openImport:() => this.setState({ dialog:'import', imp:0 }),
+      closeDialog:() => { clearInterval(this._t); this.setState({ dialog:null, imp:0 }); },
+      isbn:st.isbn, onIsbn:e => this.setState({ isbn:e.target.value }),
+      addIsbn:() => {
+        const v = st.isbn.trim();
+        if (!v) return;
+        const id = 'n' + Date.now();
+        this.setState(s => ({
+          dialog:null, sel:id, isbn:'', limit:PAGE,
+          extra:[{ id, title:'Neuer Titel', author:'Unbekannt', genre:'Roman', gi:0, year:2026, pages:240,
+            rating:0, readOn:'', comment:'', isbn:v, tint:'linear-gradient(150deg,#8B5CF6 0%,#3B1A8E 100%)' }].concat(s.extra)
+        }));
+      },
+      importPct: imp === 0 ? '0%' : imp >= 14 ? '100%' : Math.round(imp / 13 * 100) + '%',
+      importStatus: imp === 0 ? 'Bereit' : imp >= 14 ? '1.800 Bücher importiert · 312 mit Bewertung' : NF.format(Math.round(imp / 13 * 1800)) + ' von 1.800 Büchern',
+      importHint: imp >= 14 ? 'Import abgeschlossen. Bewertungen und Notizen wurden übernommen.' : 'Bibliotheksdatei wählen. Bestehende Bücher werden anhand der ISBN abgeglichen.',
+      importBtn: imp === 0 ? 'Import starten' : imp >= 14 ? 'Fertig' : 'Importiert …',
+      importCancel: imp >= 14 ? 'Schließen' : 'Abbrechen',
+      importBtnOpacity: imp > 0 && imp < 14 ? .55 : 1,
+      startImport:() => { if (imp >= 14) this.setState({ dialog:null, imp:0 }); else this.startImport(); }
+    };
+  }
+}
+</script>
+</body>
+</html>

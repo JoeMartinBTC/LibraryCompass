@@ -14,3 +14,6 @@ xcuserdata/
 
 # Delicious Library exports (private data, never commit)
 *.xml
+
+# Downloaded cover images (copyrighted, regenerable via lookup)
+mockup/covers/
