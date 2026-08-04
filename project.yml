@@ -1,0 +1,46 @@
+name: LibraryCompass
+options:
+  bundleIdPrefix: de.storymaster
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "YES"
+targets:
+  LibraryCompass:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/LibraryCompass
+      - Sources/LibraryCompassCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.storymaster.librarycompass
+        MARKETING_VERSION: "0.1"
+        GENERATE_INFOPLIST_FILE: "YES"
+        ENABLE_HARDENED_RUNTIME: "NO"
+  LibraryCompassUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.storymaster.librarycompass.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: LibraryCompass
+schemes:
+  LibraryCompass:
+    build:
+      targets:
+        LibraryCompass: all
+        LibraryCompassUITests: [test]
+    test:
+      targets:
+        - LibraryCompassUITests

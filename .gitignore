@@ -17,3 +17,6 @@ xcuserdata/
 
 # Downloaded cover images (copyrighted, regenerable via lookup)
 mockup/covers/
+
+# Gebautes App-Bundle (regenerierbar via ./make-app.sh)
+LibraryCompass.app/
