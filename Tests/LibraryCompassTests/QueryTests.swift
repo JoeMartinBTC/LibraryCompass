@@ -92,7 +92,7 @@ final class QueryTests: XCTestCase {
     func testFilterTitlesAreGerman() {
         XCTAssertEqual(LibraryFilter.allCases.map(\.title),
                        ["Alle Bücher", "Gelesen", "Ungelesen", "Bewertet"])
-        XCTAssertEqual(SortOrder.allCases.map(\.title),
+        XCTAssertEqual(LibrarySort.allCases.map(\.title),
                        ["Titel A–Z", "Autor A–Z", "Jahr, neueste zuerst",
                         "Bewertung, beste zuerst", "Zuletzt gelesen"])
     }

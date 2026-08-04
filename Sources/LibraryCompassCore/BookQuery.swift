@@ -15,7 +15,7 @@ public enum LibraryFilter: String, CaseIterable, Sendable {
 }
 
 /// Sortier-Optionen der Toolbar, Beschriftungen exakt wie in README §5.2.
-public enum SortOrder: String, CaseIterable, Sendable {
+public enum LibrarySort: String, CaseIterable, Sendable {
     case titel, autor, jahr, bewertung, zuletztGelesen
 
     public var title: String {
@@ -31,6 +31,8 @@ public enum SortOrder: String, CaseIterable, Sendable {
 
 /// Zähler der Filterzeilen — unabhängig von Suche und Sortierung.
 public struct FilterCounts: Sendable, Equatable {
+    public init() {}
+
     public var alle = 0
     public var gelesen = 0
     public var ungelesen = 0
@@ -51,9 +53,9 @@ public struct FilterCounts: Sendable, Equatable {
 public struct BookQuery: Sendable, Equatable {
     public var filter: LibraryFilter
     public var search: String
-    public var sort: SortOrder
+    public var sort: LibrarySort
 
-    public init(filter: LibraryFilter = .alle, search: String = "", sort: SortOrder = .titel) {
+    public init(filter: LibraryFilter = .alle, search: String = "", sort: LibrarySort = .titel) {
         self.filter = filter
         self.search = search
         self.sort = sort
