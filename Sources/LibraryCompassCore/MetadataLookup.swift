@@ -213,6 +213,65 @@ public enum GoogleBooks {
     }
 }
 
+/// Cover von Amazon — der einzige Weg, der **ausgabegenau** ist: die Adresse führt
+/// über die ISBN-10, also genau die Ausgabe, die im Regal steht. Freie Quellen
+/// liefern für deutsche Titel oft die englische Ausgabe oder gar nichts.
+///
+/// Achtung: Der Endpunkt nimmt jede ASIN, nicht nur Bücher. `1234567890` (falsche
+/// Prüfziffer, aber gültige ASIN) lieferte live ein Foto von Bremsscheiben. Deshalb
+/// wird nur mit geprüfter ISBN-10 angefragt.
+public enum AmazonCover {
+    /// Antwortet Amazon mit wenigen Bytes, gibt es zu dieser ISBN kein Bild.
+    public static func url(isbn: String) -> URL? {
+        guard let key = isbn10(from: isbn) else { return nil }
+        return URL(string: "https://m.media-amazon.com/images/P/\(key).01.LZZZZZZZ.jpg")
+    }
+
+    /// Vorhandene ISBN-10 durchreichen, ISBN-13 mit 978-Präfix umrechnen.
+    /// Prüfziffer muss stimmen, sonst wird gar nicht erst gefragt.
+    public static func isbn10(from raw: String) -> String? {
+        let value = ISBN.normalized(raw)
+        if value.count == 10 { return isValidISBN10(value) ? value : nil }
+        guard value.count == 13, value.hasPrefix("978"), isValidISBN13(value) else { return nil }
+
+        let core = String(value.dropFirst(3).dropLast())
+        let sum = core.enumerated().reduce(0) { total, pair in
+            total + (10 - pair.offset) * Int(String(pair.element)).orZero
+        }
+        let remainder = (11 - sum % 11) % 11
+        return core + (remainder == 10 ? "X" : String(remainder))
+    }
+
+    static func isValidISBN10(_ value: String) -> Bool {
+        guard value.count == 10 else { return false }
+        var sum = 0
+        for (index, character) in value.enumerated() {
+            let digit: Int
+            if character == "X" {
+                guard index == 9 else { return false }
+                digit = 10
+            } else {
+                guard let value = Int(String(character)) else { return false }
+                digit = value
+            }
+            sum += (10 - index) * digit
+        }
+        return sum % 11 == 0
+    }
+
+    static func isValidISBN13(_ value: String) -> Bool {
+        guard value.count == 13, value.allSatisfy(\.isNumber) else { return false }
+        let sum = value.enumerated().reduce(0) { total, pair in
+            total + Int(String(pair.element)).orZero * (pair.offset % 2 == 0 ? 1 : 3)
+        }
+        return sum % 10 == 0
+    }
+}
+
+private extension Optional where Wrapped == Int {
+    var orZero: Int { self ?? 0 }
+}
+
 /// Herkunft des Google-Books-Schlüssels. Der Schlüssel steht in einer Datei neben
 /// dem Store, nie im Repo: `~/Library/Application Support/LibraryCompass/google-books-key.txt`.
 /// Für Skripte und Tests sticht die Umgebungsvariable `GOOGLE_BOOKS_API_KEY`.
@@ -402,6 +461,11 @@ public actor MetadataLookup {
         }
 
         guard var metadata = result else { return nil }
+
+        // Amazon zuerst: nur diese Quelle trifft die Ausgabe, die im Regal steht.
+        if let amazon = AmazonCover.url(isbn: isbn), let cover = await usableCover(amazon) {
+            metadata.coverURL = cover
+        }
 
         if metadata.coverURL == nil, let cover = await usableOpenLibraryCover(isbn: isbn) {
             metadata.coverURL = cover

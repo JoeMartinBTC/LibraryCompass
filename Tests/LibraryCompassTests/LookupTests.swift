@@ -26,16 +26,24 @@ final class LookupTests: XCTestCase {
         XCTAssertEqual(metadata.pages, 459)
     }
 
-    /// „Kill for me" (Steve Cavanagh, 9783442494033): unter der ISBN führt keine
-    /// freie Quelle ein Bild, über Titel und Autor schon (Meldung 2026-08-05).
-    func testCoverForISBNWithoutOwnCoverComesFromTitleSearch() async throws {
+    /// „Kill for me" (Steve Cavanagh, 9783442494033): Die freien Quellen führen unter
+    /// dieser ISBN kein Bild und liefern über die Titelsuche die englische Ausgabe.
+    /// Amazon hat die deutsche Goldmann-Ausgabe — ausgabegenau über die ISBN-10.
+    func testCoverForGermanEditionComesFromAmazon() async throws {
         let lookup = MetadataLookup()
         guard let metadata = try await lookup.metadata(isbn: "9783442494033") else {
             return XCTFail("Kein Treffer für ISBN 9783442494033")
         }
         XCTAssertTrue(metadata.title.contains("Kill for me"), metadata.title)
-        let cover = try XCTUnwrap(metadata.coverURL, "Cover fehlt trotz Titelsuche")
-        XCTAssertTrue(["covers.openlibrary.org", "books.google.com"].contains(cover.host ?? ""),
-                      cover.absoluteString)
+        let cover = try XCTUnwrap(metadata.coverURL, "Cover fehlt")
+        XCTAssertEqual(cover.host, "m.media-amazon.com", cover.absoluteString)
+        XCTAssertTrue(cover.absoluteString.contains("3442494036"), "ISBN-10 der deutschen Ausgabe")
+    }
+
+    /// Die Titelsuche bleibt als Rückfall — mit Autor-Abgleich.
+    func testTitleSearchStillFindsSomethingWhenAmazonHasNothing() async throws {
+        let lookup = MetadataLookup()
+        let cover = try await lookup.coverByTitle(title: "Kill for me: Thriller", author: "Cavanagh, Steve")
+        XCTAssertNotNil(cover)
     }
 }
