@@ -21,7 +21,6 @@ struct LibraryView: View {
                     SidebarView(model: model)
                         .frame(width: sidebarWidth)
                         .overlay(alignment: .trailing) { resizeHandle }
-                        .accessibilityIdentifier("panel.sidebar")
                 }
 
                 mainColumn

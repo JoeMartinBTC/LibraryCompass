@@ -12,12 +12,22 @@ settings:
     CODE_SIGNING_REQUIRED: "NO"
     CODE_SIGNING_ALLOWED: "YES"
 targets:
+  LibraryCompassCore:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/LibraryCompassCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.storymaster.librarycompass.core
+        GENERATE_INFOPLIST_FILE: "YES"
   LibraryCompass:
     type: application
     platform: macOS
     sources:
       - Sources/LibraryCompass
-      - Sources/LibraryCompassCore
+    dependencies:
+      - target: LibraryCompassCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.storymaster.librarycompass

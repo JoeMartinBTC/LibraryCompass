@@ -9,6 +9,7 @@ struct LibraryCompassApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     init() {
+        LaunchOptions.resetPreferencesIfTesting()
         let container = LaunchOptions.makeContainer()
         _model = State(initialValue: AppModel(context: ModelContext(container)))
     }
@@ -39,6 +40,14 @@ enum LaunchOptions {
         guard let index = CommandLine.arguments.firstIndex(of: "--screenshot"),
               CommandLine.arguments.count > index + 1 else { return nil }
         return CommandLine.arguments[index + 1]
+    }
+
+    /// Test- und Schnappschuss-Läufe starten immer mit den Standard-Einstellungen.
+    static func resetPreferencesIfTesting() {
+        guard isUITest || screenshotPath != nil else { return }
+        for key in ["view", "sort", "sidebarOpen", "sidebarWidth", "statsOpen", "zoom"] {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 
     static func makeContainer() -> ModelContainer {

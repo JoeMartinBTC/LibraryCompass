@@ -54,7 +54,6 @@ struct DetailPanelView: View {
         .overlay(alignment: .leading) {
             Rectangle().fill(lc.brd).frame(width: 1)
         }
-        .accessibilityIdentifier("panel.detail")
     }
 
     private var header: some View {

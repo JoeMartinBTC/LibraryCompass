@@ -140,56 +140,59 @@ private struct ListRow: View {
     @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: Space.s4) {
-                // Pflicht laut ISC-12: jede Zeile zeigt eine Cover-Vorschau.
-                CoverView(book: book, width: Metrics.thumbWidth * zoom, radius: 4,
-                          showsLabels: false, spineWidth: 3)
-                    .lcShadow(lc.shadowCover)
-                    .accessibilityIdentifier("thumb.cover")
+        HStack(spacing: Space.s4) {
+            // Pflicht laut ISC-12: jede Zeile zeigt eine Cover-Vorschau.
+            CoverView(book: book, width: Metrics.thumbWidth * zoom, radius: 4,
+                      showsLabels: false, spineWidth: 3)
+                .lcShadow(lc.shadowCover)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isImage)
+                .accessibilityLabel("Cover")
+                .accessibilityIdentifier("thumb.cover")
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(book.title.isEmpty ? "Ohne Titel" : book.title)
-                        .lcType(.body)
-                        .foregroundStyle(lc.text)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text(book.author.isEmpty ? "–" : book.author)
-                        .lcType(.captionS)
-                        .foregroundStyle(lc.text3)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(book.year.map(String.init) ?? "–")
-                    .lcType(.caption)
-                    .tabularNums()
-                    .foregroundStyle(lc.text2)
-                    .frame(width: 48, alignment: .leading)
-                Text(LCFormat.stars(book.rating))
-                    .font(.system(size: 11))
-                    .tracking(1)
-                    .foregroundStyle(lc.gold)
-                    .frame(width: 74, alignment: .leading)
-                Text(LCFormat.date(book.readDate))
-                    .lcType(.caption)
-                    .tabularNums()
-                    .foregroundStyle(lc.text2)
-                    .frame(width: 96, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(book.title.isEmpty ? "Ohne Titel" : book.title)
+                    .lcType(.body)
+                    .foregroundStyle(lc.text)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(book.author.isEmpty ? "–" : book.author)
+                    .lcType(.captionS)
+                    .foregroundStyle(lc.text3)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            .padding(.horizontal, Space.s4)
-            .frame(height: Metrics.rowHeight * zoom)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(book.year.map(String.init) ?? "–")
+                .lcType(.caption)
+                .tabularNums()
+                .foregroundStyle(lc.text2)
+                .frame(width: 48, alignment: .leading)
+            Text(LCFormat.stars(book.rating))
+                .font(.system(size: 11))
+                .tracking(1)
+                .foregroundStyle(lc.gold)
+                .frame(width: 74, alignment: .leading)
+            Text(LCFormat.date(book.readDate))
+                .lcType(.caption)
+                .tabularNums()
+                .foregroundStyle(lc.text2)
+                .frame(width: 96, alignment: .trailing)
+                .lineLimit(1)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, Space.s4)
+        .frame(height: Metrics.rowHeight * zoom)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: action)
         .background {
             RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .fill(isSelected ? lc.glass2 : (hovering ? lc.glass : .clear))
         }
         .selectionRing(lc.brd2, radius: Radius.row, active: isSelected)
         .onHover { hovering = $0 }
+        // Zeile als Container, damit das Thumbnail ein eigenes Bild-Element bleibt.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("row.book")
     }
 }
