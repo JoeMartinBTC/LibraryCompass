@@ -16,4 +16,15 @@ Out of scope for now: iPhone app, sync, barcode camera scan.
 
 ## Status
 
-Concept phase. Nothing built yet.
+Phase 1 built. `./make-app.sh` builds the bundle, `./install-app.sh` puts it into
+`/Applications`, `swift test` runs the suite.
+
+## Metadata sources
+
+ISBN lookup asks Open Library first, then the German National Library (DNB, no key
+required — it covers German editions Open Library does not), then Google Books.
+Covers come from Open Library or Google Books; the DNB serves none.
+
+Google throttles anonymous access per day. To lift that, see
+[docs/google-books-key.md](docs/google-books-key.md) and run `./set-google-key.sh <key>`.
+The key lives outside the repo, next to the library database.

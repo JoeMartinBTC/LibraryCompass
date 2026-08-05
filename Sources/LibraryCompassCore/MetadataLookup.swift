@@ -120,8 +120,13 @@ public enum OpenLibrary {
 /// Google Books — Fallback. Anonym drosselt Google aggressiv (429), deshalb
 /// sequenziell mit Backoff und ohne Parallelzugriff (BUILD-HANDOVER §4/§9).
 public enum GoogleBooks {
-    public static func volumesURL(isbn: String) -> URL {
-        URL(string: "https://www.googleapis.com/books/v1/volumes?q=isbn:\(isbn)")!
+    public static func volumesURL(isbn: String, key: String? = nil) -> URL {
+        var components = URLComponents(string: "https://www.googleapis.com/books/v1/volumes")!
+        components.queryItems = [URLQueryItem(name: "q", value: "isbn:\(isbn)")]
+        if let key, !key.isEmpty {
+            components.queryItems?.append(URLQueryItem(name: "key", value: key))
+        }
+        return components.url!
     }
 
     public static func parse(_ data: Data) -> BookMetadata? {
@@ -139,6 +144,35 @@ public enum GoogleBooks {
             metadata.coverURL = URL(string: raw.replacingOccurrences(of: "http://", with: "https://"))
         }
         return metadata.isEmpty ? nil : metadata
+    }
+}
+
+/// Herkunft des Google-Books-Schlüssels. Der Schlüssel steht in einer Datei neben
+/// dem Store, nie im Repo: `~/Library/Application Support/LibraryCompass/google-books-key.txt`.
+/// Für Skripte und Tests sticht die Umgebungsvariable `GOOGLE_BOOKS_API_KEY`.
+public enum GoogleBooksKey {
+    public static let environmentVariable = "GOOGLE_BOOKS_API_KEY"
+    public static let fileName = "google-books-key.txt"
+
+    /// Der Schlüssel dieser Maschine, oder `nil` — dann fragt die App Google anonym.
+    public static func current() -> String? {
+        resolve(environment: ProcessInfo.processInfo.environment, file: try? defaultFileURL())
+    }
+
+    public static func defaultFileURL() throws -> URL {
+        try LibraryStore.applicationSupportDirectory().appendingPathComponent(fileName)
+    }
+
+    static func resolve(environment: [String: String], file: URL?) -> String? {
+        if let value = clean(environment[environmentVariable]) { return value }
+        guard let file, let contents = try? String(contentsOf: file, encoding: .utf8) else { return nil }
+        return clean(contents)
+    }
+
+    private static func clean(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 }
 
@@ -257,17 +291,21 @@ enum DublinCoreFields {
 public actor MetadataLookup {
     private let client: HTTPClient
     private let backoff: @Sendable (Int) async -> Void
+    /// Eigener Schlüssel hebt Googles Tagesquote; ohne ihn bleibt es beim anonymen Zugriff.
+    private let apiKey: String?
 
-    public init(client: HTTPClient = URLSessionHTTPClient()) {
+    public init(client: HTTPClient = URLSessionHTTPClient(), apiKey: String? = GoogleBooksKey.current()) {
         self.client = client
+        self.apiKey = apiKey
         self.backoff = { attempt in
             try? await Task.sleep(nanoseconds: UInt64(pow(2.0, Double(attempt)) * 800_000_000))
         }
     }
 
-    init(client: HTTPClient, backoff: @escaping @Sendable (Int) async -> Void) {
+    init(client: HTTPClient, backoff: @escaping @Sendable (Int) async -> Void, apiKey: String? = nil) {
         self.client = client
         self.backoff = backoff
+        self.apiKey = apiKey
     }
 
     public func metadata(isbn rawISBN: String) async throws -> BookMetadata? {
@@ -312,7 +350,7 @@ public actor MetadataLookup {
     /// Google Books sequenziell mit Backoff bei 429.
     private func googleBooks(isbn: String) async throws -> BookMetadata? {
         for attempt in 0..<3 {
-            let (data, status) = try await client.get(GoogleBooks.volumesURL(isbn: isbn))
+            let (data, status) = try await client.get(GoogleBooks.volumesURL(isbn: isbn, key: apiKey))
             if status == 429 {
                 await backoff(attempt)
                 continue
