@@ -137,7 +137,8 @@ public enum GoogleBooks {
         var metadata = BookMetadata()
         metadata.title = (info["title"] as? String) ?? ""
         metadata.author = ((info["authors"] as? [String]) ?? []).joined(separator: ", ")
-        metadata.pages = info["pageCount"] as? Int
+        // Google schickt bei unbekanntem Umfang `pageCount: 0` — das ist keine Angabe.
+        metadata.pages = (info["pageCount"] as? Int).flatMap { $0 > 0 ? $0 : nil }
         metadata.year = OpenLibrary.yearFromText(info["publishedDate"] as? String)
         if let links = info["imageLinks"] as? [String: Any],
            let raw = (links["thumbnail"] ?? links["smallThumbnail"]) as? String {
@@ -327,7 +328,9 @@ public actor MetadataLookup {
             }
         }
 
+        var askedGoogle = false
         if result == nil || result?.title.isEmpty == true {
+            askedGoogle = true
             if let google = try await googleBooks(isbn: isbn) {
                 result = merge(result, google)
             }
@@ -337,6 +340,14 @@ public actor MetadataLookup {
 
         if metadata.coverURL == nil, let cover = await usableOpenLibraryCover(isbn: isbn) {
             metadata.coverURL = cover
+        }
+
+        // Die DNB liefert nie ein Bild. Fehlt es noch, ist Google die letzte Quelle,
+        // die eines haben kann — auch wenn Titel und Autor längst feststehen.
+        if metadata.coverURL == nil, !askedGoogle, let google = try? await googleBooks(isbn: isbn) {
+            metadata.coverURL = google.coverURL
+            if metadata.year == nil { metadata.year = google.year }
+            if metadata.pages == nil { metadata.pages = google.pages }
         }
         // Letzte Cover-Stufe: Titelsuche, aber nur mit Autor-Abgleich — DNB-Treffer
         // haben nie ein Cover dabei, und reine Titelsuche liefert falsche Bilder.

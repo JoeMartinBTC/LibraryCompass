@@ -101,6 +101,51 @@ final class DNBLookupTests: XCTestCase {
                        "Bei OL-Treffer darf die DNB nicht gefragt werden")
     }
 
+    /// Die DNB liefert nie ein Cover. Steht der Titel schon fest, muss Google
+    /// trotzdem nach dem Bild gefragt werden — sonst bringt ein eigener
+    /// Google-Schlüssel für deutsche Ausgaben gar nichts.
+    func testAsksGoogleForCoverEvenWhenDNBAlreadyNamedTheTitle() async throws {
+        let google = #"""
+        {"items": [{"volumeInfo": {"title": "Toxin", "authors": ["Kathrin Lange"],
+         "imageLinks": {"thumbnail": "http://books.google.com/books?id=42&img=1"}}}]}
+        """#
+        let client = StubClient(responses: [
+            "openlibrary.org/api/books": (Data("{}".utf8), 200),
+            "covers.openlibrary.org": (Data(), 404),
+            "openlibrary.org/search.json": (Data(#"{"docs": []}"#.utf8), 200),
+            "services.dnb.de": (Data(toxinRecord.utf8), 200),
+            "googleapis.com": (Data(google.utf8), 200)
+        ])
+        let lookup = MetadataLookup(client: client, backoff: { _ in })
+
+        let result = try await lookup.metadata(isbn: "9783785728390")
+        let metadata = try XCTUnwrap(result)
+        XCTAssertEqual(metadata.title, "Toxin: Thriller", "Titel bleibt der der DNB")
+        XCTAssertEqual(metadata.coverURL?.host, "books.google.com")
+        XCTAssertEqual(metadata.coverURL?.scheme, "https")
+    }
+
+    func testGoogleIsAskedOnlyOnceWhenItAlreadyAnswered() async throws {
+        let google = #"{"items": [{"volumeInfo": {"title": "Irgendwas"}}]}"#
+        let client = StubClient(responses: [
+            "openlibrary.org/api/books": (Data("{}".utf8), 200),
+            "covers.openlibrary.org": (Data(), 404),
+            "openlibrary.org/search.json": (Data(#"{"docs": []}"#.utf8), 200),
+            "services.dnb.de": (Data("<x/>".utf8), 200),
+            "googleapis.com": (Data(google.utf8), 200)
+        ])
+        let lookup = MetadataLookup(client: client, backoff: { _ in })
+
+        _ = try await lookup.metadata(isbn: "9780000000000")
+        let googleCalls = await client.requested.filter { $0.contains("googleapis.com") }
+        XCTAssertEqual(googleCalls.count, 1, "Google darf nicht doppelt gefragt werden")
+    }
+
+    func testGooglePageCountZeroCountsAsUnknown() throws {
+        let json = #"{"items": [{"volumeInfo": {"title": "T", "pageCount": 0}}]}"#
+        XCTAssertNil(try XCTUnwrap(GoogleBooks.parse(Data(json.utf8))).pages)
+    }
+
     // MARK: Hilfen
 
     private func record(title: String, creators: [String]) -> String {
