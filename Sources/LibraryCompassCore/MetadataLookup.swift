@@ -142,7 +142,118 @@ public enum GoogleBooks {
     }
 }
 
-/// ISBN → Titel, Autor, Cover. Immer sequenziell: Open Library, dann Google Books.
+/// Deutsche Nationalbibliothek über SRU — kein API-Key, Pflichtexemplar-Katalog.
+/// Nötig, weil Open Library deutsche Ausgaben oft nicht kennt und Google Books
+/// anonym pro Tag drosselt (live 2026-08-05: `{}` bzw. 429 zu 9783785728390).
+/// Cover liefert die DNB nicht — dafür bleiben Open Library und Google zuständig.
+public enum DNB {
+    public static func searchURL(isbn: String) -> URL {
+        var components = URLComponents(string: "https://services.dnb.de/sru/dnb")!
+        components.queryItems = [
+            URLQueryItem(name: "version", value: "1.1"),
+            URLQueryItem(name: "operation", value: "searchRetrieve"),
+            URLQueryItem(name: "query", value: "NUM=\(isbn)"),
+            URLQueryItem(name: "recordSchema", value: "oai_dc"),
+            URLQueryItem(name: "maximumRecords", value: "1")
+        ]
+        return components.url!
+    }
+
+    public static func parse(_ data: Data) -> BookMetadata? {
+        let fields = DublinCoreFields.parse(data)
+        guard let rawTitle = fields["title"]?.first, !rawTitle.isEmpty else { return nil }
+
+        var metadata = BookMetadata()
+        metadata.title = title(from: rawTitle)
+        metadata.author = author(from: fields["creator"] ?? [])
+        metadata.year = OpenLibrary.yearFromText(fields["date"]?.first)
+        metadata.pages = pages(from: fields["format"] ?? [])
+        return metadata.isEmpty ? nil : metadata
+    }
+
+    /// „Toxin : Thriller / Kathrin Lange" → „Toxin: Thriller".
+    /// Hinter dem Schrägstrich steht die Verfasserangabe, die schon im Autorfeld steht.
+    static func title(from raw: String) -> String {
+        let withoutResponsibility = raw.components(separatedBy: " / ").first ?? raw
+        return withoutResponsibility
+            .replacingOccurrences(of: " : ", with: ": ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// „Lange, Kathrin [Verfasser]" → „Lange, Kathrin". Verfasser haben Vorrang;
+    /// nennt der Datensatz keinen, bleiben Herausgeber oder Übersetzer übrig.
+    static func author(from creators: [String]) -> String {
+        let entries = creators.map { entry -> (name: String, role: String) in
+            let role = entry.range(of: "\\[[^\\]]+\\]", options: .regularExpression)
+                .map { String(entry[$0].dropFirst().dropLast()) } ?? ""
+            let name = entry.replacingOccurrences(of: "\\[[^\\]]+\\]", with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (name, role)
+        }.filter { !$0.name.isEmpty }
+
+        let authors = entries.filter { $0.role.hasPrefix("Verfasser") }
+        let chosen = authors.isEmpty ? entries : authors
+        // Namen stehen als „Nachname, Vorname" — Semikolon trennt sie eindeutig.
+        return chosen.map(\.name).joined(separator: "; ")
+    }
+
+    /// „459 Seiten" → 459.
+    static func pages(from formats: [String]) -> Int? {
+        for value in formats {
+            guard value.localizedCaseInsensitiveContains("seite"),
+                  let match = value.range(of: "[0-9]+", options: .regularExpression) else { continue }
+            return Int(value[match])
+        }
+        return nil
+    }
+}
+
+/// Sammelt die Dublin-Core-Felder einer SRU-Antwort nach lokalem Elementnamen.
+enum DublinCoreFields {
+    private static let wanted: Set<String> = ["title", "creator", "date", "format"]
+
+    static func parse(_ data: Data) -> [String: [String]] {
+        let collector = Collector(wanted: wanted)
+        let parser = XMLParser(data: data)
+        parser.shouldProcessNamespaces = true
+        parser.delegate = collector
+        parser.parse()
+        return collector.fields
+    }
+
+    private final class Collector: NSObject, XMLParserDelegate {
+        private let wanted: Set<String>
+        private var current: String?
+        private var buffer = ""
+        var fields: [String: [String]] = [:]
+
+        init(wanted: Set<String>) {
+            self.wanted = wanted
+        }
+
+        func parser(_ parser: XMLParser, didStartElement name: String, namespaceURI: String?,
+                    qualifiedName: String?, attributes: [String: String]) {
+            current = wanted.contains(name) ? name : nil
+            buffer = ""
+        }
+
+        func parser(_ parser: XMLParser, foundCharacters string: String) {
+            guard current != nil else { return }
+            buffer += string
+        }
+
+        func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?,
+                    qualifiedName: String?) {
+            guard let key = current, key == name else { return }
+            let value = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty { fields[key, default: []].append(value) }
+            current = nil
+            buffer = ""
+        }
+    }
+}
+
+/// ISBN → Titel, Autor, Cover. Immer sequenziell: Open Library, DNB, dann Google Books.
 public actor MetadataLookup {
     private let client: HTTPClient
     private let backoff: @Sendable (Int) async -> Void
@@ -169,6 +280,15 @@ public actor MetadataLookup {
             result = OpenLibrary.parse(data, isbn: isbn)
         }
 
+        // Deutsche Ausgaben fehlen bei Open Library häufig; die DNB kennt sie und
+        // antwortet ohne Schlüssel und ohne Tagesquote — deshalb vor Google.
+        if result == nil || result?.title.isEmpty == true {
+            if let (data, status) = try? await client.get(DNB.searchURL(isbn: isbn)), status == 200,
+               let record = DNB.parse(data) {
+                result = merge(result, record)
+            }
+        }
+
         if result == nil || result?.title.isEmpty == true {
             if let google = try await googleBooks(isbn: isbn) {
                 result = merge(result, google)
@@ -178,6 +298,12 @@ public actor MetadataLookup {
         guard var metadata = result else { return nil }
 
         if metadata.coverURL == nil, let cover = await usableOpenLibraryCover(isbn: isbn) {
+            metadata.coverURL = cover
+        }
+        // Letzte Cover-Stufe: Titelsuche, aber nur mit Autor-Abgleich — DNB-Treffer
+        // haben nie ein Cover dabei, und reine Titelsuche liefert falsche Bilder.
+        if metadata.coverURL == nil,
+           let cover = try? await coverByTitle(title: metadata.title, author: metadata.author) {
             metadata.coverURL = cover
         }
         return metadata

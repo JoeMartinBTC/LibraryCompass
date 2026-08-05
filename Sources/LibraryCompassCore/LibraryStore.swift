@@ -35,4 +35,14 @@ public enum LibraryStore {
     public static func defaultStoreURL() throws -> URL {
         try applicationSupportDirectory().appendingPathComponent("Library.store")
     }
+
+    /// Buch zu einer ISBN, unabhängig von Trennzeichen. Bücher ohne ISBN treffen nie,
+    /// sonst würden die ~245 Bestandsbücher ohne ISBN alle als dasselbe Buch gelten.
+    public static func book(isbn rawISBN: String, in context: ModelContext) -> Book? {
+        let isbn = ISBN.normalized(rawISBN)
+        guard !isbn.isEmpty else { return nil }
+        var descriptor = FetchDescriptor<Book>(predicate: #Predicate { $0.isbn == isbn })
+        descriptor.fetchLimit = 1
+        return (try? context.fetch(descriptor))?.first
+    }
 }

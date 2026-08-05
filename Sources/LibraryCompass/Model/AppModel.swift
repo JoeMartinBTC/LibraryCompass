@@ -146,6 +146,15 @@ final class AppModel {
         guard !isbn.isEmpty else { return nil }
 
         let normalized = ISBN.normalized(isbn)
+
+        // Dieselbe ISBN erneut eingeben heißt: nochmal nachschlagen, nicht verdoppeln.
+        // Genau so repariert sich ein Eintrag, dessen Lookup beim ersten Mal scheiterte.
+        if let existing = LibraryStore.book(isbn: normalized, in: context) {
+            selection = existing
+            Task { await fillMetadata(for: existing) }
+            return existing
+        }
+
         let book = Book(isbn: normalized, title: "", author: "", addedDate: Date())
         context.insert(book)
         try? context.save()
