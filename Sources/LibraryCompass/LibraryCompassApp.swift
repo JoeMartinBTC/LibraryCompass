@@ -45,8 +45,19 @@ enum LaunchOptions {
     /// Test- und Schnappschuss-Läufe starten immer mit den Standard-Einstellungen.
     static func resetPreferencesIfTesting() {
         guard isUITest || screenshotPath != nil else { return }
+        let defaults = UserDefaults.standard
         for key in ["view", "sort", "sidebarOpen", "sidebarWidth", "statsOpen", "zoom"] {
-            UserDefaults.standard.removeObject(forKey: key)
+            defaults.removeObject(forKey: key)
+        }
+        // Zustände für die Design-Abnahme
+        switch state {
+        case "wide": defaults.set(400.0, forKey: "sidebarWidth")
+        case "nostats": defaults.set(false, forKey: "statsOpen")
+        default: break
+        }
+        if let index = CommandLine.arguments.firstIndex(of: "--appearance"),
+           CommandLine.arguments.count > index + 1 {
+            defaults.set(CommandLine.arguments[index + 1], forKey: "appearance")
         }
     }
 
@@ -172,7 +183,7 @@ struct RootView: View {
     private func applyLaunchState() {
         switch LaunchOptions.state {
         case "list": model.viewMode = .list
-        case "detail": model.selection = model.rows.first
+        case "detail", "wide": model.selection = model.rows.first
         case "isbn": model.dialog = .isbn
         case "import": model.dialog = .importer
         case "empty": model.search = "zzzz"

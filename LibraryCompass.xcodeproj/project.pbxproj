@@ -10,6 +10,7 @@
 		08F8A408496F28BD7429AE71 /* LibraryCompassCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 841604E731DF0738FCF88C5B /* LibraryCompassCore.framework */; };
 		12E20A174C87186A3FF81D1B /* MetadataLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF00A409FBFF26607EF1CEFF /* MetadataLookup.swift */; };
 		28D6CA6FF71508854E04EF8E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26DE1F4ADCBE107E7FFF66E /* Theme.swift */; };
+		32805FC073B113338A72A22B /* Zoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4EE3D3E8F302E9D8C196C89 /* Zoom.swift */; };
 		34279B7363D45544B036936E /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66067860E50CEA30CF280D5C /* Book.swift */; };
 		39DED03C821DF3A9487C9573 /* LibraryCompassCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 841604E731DF0738FCF88C5B /* LibraryCompassCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		52C529D98789AA517ED2DAF9 /* StatsCardsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9B1F16974F327D8211EA03 /* StatsCardsView.swift */; };
@@ -91,6 +92,7 @@
 		ACDD15C57271192C268E683A /* DetailPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPanelView.swift; sourceTree = "<group>"; };
 		B26DE1F4ADCBE107E7FFF66E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B4DAF5710DCD3ED6B1DF2E29 /* LibraryCompassUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCompassUITests.swift; sourceTree = "<group>"; };
+		B4EE3D3E8F302E9D8C196C89 /* Zoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Zoom.swift; sourceTree = "<group>"; };
 		BAB4C8E4ECDB0CABBEB53BBA /* BookFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookFields.swift; sourceTree = "<group>"; };
 		BF00A409FBFF26607EF1CEFF /* MetadataLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataLookup.swift; sourceTree = "<group>"; };
 		D9414CD0F08C3450243C6E81 /* LibraryCompassApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCompassApp.swift; sourceTree = "<group>"; };
@@ -207,6 +209,7 @@
 				717CC739F65A9F327F1D14FF /* LibraryStats.swift */,
 				F49193E805BA8BDEB2EB12C7 /* LibraryStore.swift */,
 				BF00A409FBFF26607EF1CEFF /* MetadataLookup.swift */,
+				B4EE3D3E8F302E9D8C196C89 /* Zoom.swift */,
 			);
 			path = LibraryCompassCore;
 			sourceTree = "<group>";
@@ -319,6 +322,7 @@
 				ECD6F346978839A11F6CACEB /* LibraryStats.swift in Sources */,
 				D20C027C1E788B1D2F0CD833 /* LibraryStore.swift in Sources */,
 				12E20A174C87186A3FF81D1B /* MetadataLookup.swift in Sources */,
+				32805FC073B113338A72A22B /* Zoom.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

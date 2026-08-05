@@ -20,6 +20,7 @@ struct LibraryView: View {
                 if sidebarOpen {
                     SidebarView(model: model)
                         .frame(width: sidebarWidth)
+                        .fixedSize(horizontal: true, vertical: false)
                         .overlay(alignment: .trailing) { resizeHandle }
                 }
 
@@ -62,7 +63,10 @@ struct LibraryView: View {
             FloatingAction { model.dialog = .isbn }
                 .padding(.bottom, Metrics.actionBottomInset)
         }
-        .frame(maxWidth: .infinity)
+        // Mittelspalte gibt nach, damit Seitenleiste (bis 400) und Detail-Panel
+        // nebeneinander passen — Inhalte kürzen statt überlaufen (README §11.5).
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .clipped()
     }
 
     /// Ziehfläche an der rechten Kante — folgt dem Cursor 1:1, ohne Animation.

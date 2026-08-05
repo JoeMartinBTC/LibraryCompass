@@ -11,6 +11,7 @@ final class ImportSampleTests: XCTestCase {
 
         let report = try LibraryImporter.importFile(at: Fixtures.sampleURL, into: context)
 
+        print("IMPORT-REPORT: " + report.summary)
         XCTAssertEqual(report.imported, 108)
         XCTAssertEqual(report.errors, 0)
         XCTAssertEqual(report.summary, "imported=108 errors=0")

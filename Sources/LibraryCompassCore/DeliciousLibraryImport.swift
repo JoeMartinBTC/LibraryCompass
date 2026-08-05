@@ -84,7 +84,7 @@ public enum DeliciousLibraryImport {
         var books: [ImportedBook] = []
         books.reserveCapacity(entries.count)
         var skippedNonBooks = 0
-        var errors: [String] = []
+        let errors: [String] = []
 
         for entry in entries {
             guard (entry["type"] as? String) == "Book" else {

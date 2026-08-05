@@ -40,6 +40,7 @@ struct ToolbarView: View {
         }
         .padding(.horizontal, Space.s6)
         .frame(height: Metrics.toolbarHeight)
+        .clipped()
     }
 }
 
@@ -108,7 +109,8 @@ private struct SearchField: View {
             }
         }
         .padding(.horizontal, 10)
-        .frame(width: 288, height: Metrics.controlToolbar)
+        .frame(minWidth: 120, idealWidth: 288, maxWidth: 288, minHeight: Metrics.controlToolbar,
+               maxHeight: Metrics.controlToolbar)
         .glass(lc.glass, radius: Radius.m, border: focused ? lc.accent : lc.brd, blurred: true)
         .overlay {
             if focused {
@@ -125,11 +127,12 @@ private struct ZoomControl: View {
     @Binding var zoom: Double
 
     private let trackWidth: CGFloat = 86
+    @State private var currentTrack: CGFloat = 86
 
     var body: some View {
         HStack(spacing: 9) {
             StepButton(symbol: "minus", identifier: "btn.zoomOut") {
-                zoom = clamp(zoom - Metrics.zoomStep)
+                zoom = Zoom.stepped(zoom, by: -Zoom.step)
             }
 
             ZStack(alignment: .leading) {
@@ -146,12 +149,11 @@ private struct ZoomControl: View {
             .frame(width: trackWidth, height: 14)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { value in
-                let f = min(1, max(0, value.location.x / trackWidth))
-                zoom = clamp(Metrics.zoomMin + f * (Metrics.zoomMax - Metrics.zoomMin))
+                zoom = Zoom.fromTrack(value.location.x / trackWidth)
             })
 
             StepButton(symbol: "plus", identifier: "btn.zoomIn") {
-                zoom = clamp(zoom + Metrics.zoomStep)
+                zoom = Zoom.stepped(zoom, by: Zoom.step)
             }
 
             Text("\(Int((zoom * 100).rounded()))\u{00A0}%")
@@ -168,11 +170,7 @@ private struct ZoomControl: View {
     }
 
     private var fraction: CGFloat {
-        CGFloat((zoom - Metrics.zoomMin) / (Metrics.zoomMax - Metrics.zoomMin))
-    }
-
-    private func clamp(_ value: Double) -> Double {
-        (min(Metrics.zoomMax, max(Metrics.zoomMin, value)) * 100).rounded() / 100
+        CGFloat(Zoom.trackFraction(zoom))
     }
 
     private struct StepButton: View {

@@ -11,6 +11,7 @@ final class ImportOriginalTests: XCTestCase {
 
         let report = try LibraryImporter.importFile(at: Fixtures.originalURL, into: context)
 
+        print("IMPORT-REPORT: " + report.summary)
         XCTAssertEqual(report.summary, "imported=1780 errors=0")
         XCTAssertEqual(report.skippedNonBooks, 1, "der eine Gadget-Eintrag wird übersprungen")
         XCTAssertEqual(try context.fetch(FetchDescriptor<Book>()).count, 1780)
