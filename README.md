@@ -21,10 +21,29 @@ Phase 1 built. `./make-app.sh` builds the bundle, `./install-app.sh` puts it int
 
 ## Metadata sources
 
-ISBN lookup asks Open Library first, then the German National Library (DNB, no key
-required — it covers German editions Open Library does not), then Google Books.
-Covers come from Open Library or Google Books; the DNB serves none.
+Metadata: Open Library → German National Library (DNB, no key, covers German editions
+Open Library lacks) → Google Books.
+
+Covers: Amazon by ISBN-10 first — the only edition-exact source — then Open Library,
+Google Books, and finally a title search guarded by an author match.
+
+Full details, including the pitfalls each step exists for:
+**[docs/lookup.md](docs/lookup.md)**.
 
 Google throttles anonymous access per day. To lift that, see
 [docs/google-books-key.md](docs/google-books-key.md) and run `./set-google-key.sh <key>`.
 The key lives outside the repo, next to the library database.
+
+## Layout
+
+| Path | Purpose |
+|---|---|
+| `Sources/LibraryCompassCore/` | model, store, import, query, stats, lookup, cover cache |
+| `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model |
+| `Tests/LibraryCompassTests/` | 108 tests, including live network checks |
+| `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
+| `docs/` | lookup strategy, Google Books key setup |
+| `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |
+
+Data lives in `~/Library/Application Support/LibraryCompass/` (SwiftData store,
+cover cache, API key) — never in the repo.
