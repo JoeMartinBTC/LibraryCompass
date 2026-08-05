@@ -41,6 +41,34 @@ public enum AuthorMatch {
     }
 }
 
+/// Aus dem gespeicherten Titel den Teil machen, mit dem sich suchen lässt.
+/// DNB-Titel schleppen Ausgabevarianten und Untertitel mit:
+/// „[Kill for me, kill for you] ; Kill for me: Thriller: sie tötet …" → „Kill for me".
+public enum SearchTitle {
+    public static func simplify(_ raw: String) -> String {
+        var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Steht die Variante in eckigen Klammern vorweg, gilt der Teil dahinter.
+        if value.hasPrefix("["), let close = value.firstIndex(of: "]") {
+            let after = value[value.index(after: close)...]
+                .trimmingCharacters(in: CharacterSet(charactersIn: " ;·/"))
+            value = after.isEmpty
+                ? String(value[value.index(after: value.startIndex)..<close])
+                : after
+        }
+
+        // Mehrere Fassungen stehen durch Semikolon getrennt — die erste genügt.
+        if let semicolon = value.range(of: " ; ") {
+            value = String(value[..<semicolon.lowerBound])
+        }
+        // Untertitel hinter dem Doppelpunkt hilft bei der Suche nicht.
+        if let colon = value.range(of: ":") {
+            value = String(value[..<colon.lowerBound])
+        }
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 public protocol HTTPClient: Sendable {
     /// Liefert Rumpf und HTTP-Status.
     func get(_ url: URL) async throws -> (Data, Int)
@@ -72,12 +100,19 @@ public enum OpenLibrary {
         URL(string: "https://covers.openlibrary.org/b/isbn/\(isbn)-L.jpg?default=false")!
     }
 
-    public static func searchURL(title: String) -> URL {
+    /// Cover einer Ausgabe, die Open Library nur über die Suche kennt (`cover_i`).
+    public static func coverURL(coverID: Int) -> URL {
+        URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-L.jpg")!
+    }
+
+    public static func searchURL(title: String, author: String = "") -> URL {
         var components = URLComponents(string: "https://openlibrary.org/search.json")!
-        components.queryItems = [
+        var items = [
             URLQueryItem(name: "title", value: title),
             URLQueryItem(name: "limit", value: "5")
         ]
+        if !author.isEmpty { items.insert(URLQueryItem(name: "author", value: author), at: 1) }
+        components.queryItems = items
         return components.url!
     }
 
@@ -100,13 +135,15 @@ public enum OpenLibrary {
     }
 
     /// Autor-Namen aus der Titelsuche (nur für den Abgleich, nicht als Metadaten).
-    public static func searchResults(_ data: Data) -> [(title: String, author: String, isbn: String?)] {
+    /// `coverID` ist der verlässlichere Weg zum Bild: viele Treffer führen gar keine ISBN.
+    public static func searchResults(_ data: Data) -> [(title: String, author: String, isbn: String?, coverID: Int?)] {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let docs = root["docs"] as? [[String: Any]] else { return [] }
         return docs.map { doc in
             (title: (doc["title"] as? String) ?? "",
              author: ((doc["author_name"] as? [String]) ?? []).joined(separator: ", "),
-             isbn: (doc["isbn"] as? [String])?.first)
+             isbn: (doc["isbn"] as? [String])?.first,
+             coverID: doc["cover_i"] as? Int)
         }
     }
 
@@ -127,6 +164,34 @@ public enum GoogleBooks {
             components.queryItems?.append(URLQueryItem(name: "key", value: key))
         }
         return components.url!
+    }
+
+    /// Suche über Titel und Autor statt über die ISBN — für Ausgaben, die unter
+    /// ihrer ISBN kein Bild führen.
+    public static func searchURL(title: String, author: String, key: String? = nil) -> URL {
+        var components = URLComponents(string: "https://www.googleapis.com/books/v1/volumes")!
+        var items = [URLQueryItem(name: "q", value: "intitle:\"\(title)\" inauthor:\"\(author)\"")]
+        if let key, !key.isEmpty { items.append(URLQueryItem(name: "key", value: key)) }
+        components.queryItems = items
+        return components.url!
+    }
+
+    /// Alle Treffer mit Autor und Bild — für den Abgleich, nicht als Metadaten.
+    public static func searchResults(_ data: Data) -> [(title: String, author: String, coverURL: URL?)] {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let items = root["items"] as? [[String: Any]] else { return [] }
+        return items.compactMap { item in
+            guard let info = item["volumeInfo"] as? [String: Any] else { return nil }
+            return (title: (info["title"] as? String) ?? "",
+                    author: ((info["authors"] as? [String]) ?? []).joined(separator: ", "),
+                    coverURL: coverURL(from: info))
+        }
+    }
+
+    static func coverURL(from info: [String: Any]) -> URL? {
+        guard let links = info["imageLinks"] as? [String: Any],
+              let raw = (links["thumbnail"] ?? links["smallThumbnail"]) as? String else { return nil }
+        return URL(string: raw.replacingOccurrences(of: "http://", with: "https://"))
     }
 
     public static func parse(_ data: Data) -> BookMetadata? {
@@ -374,7 +439,10 @@ public actor MetadataLookup {
 
     /// Open Library antwortet mit 1×1-Pixeln statt 404 — deshalb Größencheck.
     private func usableOpenLibraryCover(isbn: String) async -> URL? {
-        let url = OpenLibrary.coverURL(isbn: isbn)
+        await usableCover(OpenLibrary.coverURL(isbn: isbn))
+    }
+
+    private func usableCover(_ url: URL) async -> URL? {
         guard let (data, status) = try? await client.get(url), status == 200,
               CoverCache.isUsableImage(data) else { return nil }
         return url
@@ -393,13 +461,31 @@ public actor MetadataLookup {
     /// Letzte Stufe für Bestandsbücher ohne ISBN-Treffer: Titelsuche, aber nur
     /// mit Autor-Abgleich — reine Titelsuche liefert falsche Cover.
     public func coverByTitle(title: String, author: String) async throws -> URL? {
-        guard !title.isEmpty, !author.isEmpty else { return nil }
-        let (data, status) = try await client.get(OpenLibrary.searchURL(title: title))
-        guard status == 200 else { return nil }
+        let query = SearchTitle.simplify(title)
+        guard !query.isEmpty, !author.isEmpty else { return nil }
 
-        for candidate in OpenLibrary.searchResults(data) {
-            guard AuthorMatch.matches(author, candidate.author), let isbn = candidate.isbn else { continue }
-            if let cover = await usableOpenLibraryCover(isbn: isbn) { return cover }
+        if let (data, status) = try? await client.get(OpenLibrary.searchURL(title: query, author: author)),
+           status == 200 {
+            for candidate in OpenLibrary.searchResults(data) {
+                guard AuthorMatch.matches(author, candidate.author) else { continue }
+                if let coverID = candidate.coverID,
+                   let cover = await usableCover(OpenLibrary.coverURL(coverID: coverID)) {
+                    return cover
+                }
+                if let isbn = candidate.isbn, let cover = await usableOpenLibraryCover(isbn: isbn) {
+                    return cover
+                }
+            }
+        }
+
+        // Open Library kennt viele Ausgaben gar nicht; Google führt sie über Titel
+        // und Autor, auch wenn es unter der ISBN nichts hat.
+        if let (data, status) = try? await client.get(GoogleBooks.searchURL(title: query, author: author, key: apiKey)),
+           status == 200 {
+            for candidate in GoogleBooks.searchResults(data) {
+                guard AuthorMatch.matches(author, candidate.author), let cover = candidate.coverURL else { continue }
+                return cover
+            }
         }
         return nil
     }
