@@ -20,7 +20,7 @@ struct ScanSheet: View {
             }
         }
         .task { await scanner.start() }
-        .onDisappear { scanner.stop() }
+        .onDisappear { scanner.teardown() }
         .onChange(of: scanner.lastISBN) { _, isbn in
             guard let isbn else { return }
             model.addScanned(isbn: isbn)
@@ -80,9 +80,8 @@ struct ScanSheet: View {
     }
 
     /// Mehrere Kameras sind die Regel — virtuelle (OBS und Co.) liefern kein Bild.
-    @ViewBuilder
     private var cameraPicker: some View {
-        if scanner.cameras.count > 1 {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Picker("Kamera", selection: $scanner.selectedCameraID) {
                     ForEach(scanner.cameras, id: \.uniqueID) { device in
@@ -90,13 +89,35 @@ struct ScanSheet: View {
                     }
                 }
                 .labelsHidden()
-                .frame(maxWidth: 280)
+                .frame(maxWidth: 260)
+                .disabled(scanner.cameras.count < 2)
+
+                Button("Neu suchen") { Task { await scanner.refreshCameras() } }
+                    .buttonStyle(.plain)
+                    .lcType(.caption)
+                    .foregroundStyle(lc.text)
+                    .padding(.horizontal, 12)
+                    .frame(height: Metrics.controlDialog)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(lc.brd, lineWidth: 1)
+                    }
+
                 if !scanner.resolution.isEmpty {
                     Text(scanner.resolution)
                         .lcType(.caption)
                         .foregroundStyle(lc.text2)
                 }
                 Spacer()
+            }
+
+            // Ein iPhone erscheint nur, wenn es gesperrt und in Reichweite ist.
+            if scanner.onlyVirtualCameras {
+                Text("Nur virtuelle Kameras gefunden. Fürs iPhone: sperren, in die Nähe legen, "
+                     + "Bluetooth und WLAN an — dann auf Neu suchen tippen.")
+                    .lcType(.caption)
+                    .foregroundStyle(lc.text2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

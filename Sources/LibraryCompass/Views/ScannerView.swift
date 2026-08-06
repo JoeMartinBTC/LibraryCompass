@@ -38,12 +38,50 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureVideoDataOutput
     private let queue = DispatchQueue(label: "de.storymaster.librarycompass.scanner")
     private let frameQueue = DispatchQueue(label: "de.storymaster.librarycompass.frames")
     private let lastFrameTime = Timestamp()
+    private var observers: [NSObjectProtocol] = []
 
     /// Alle Kameras, die für einen Scan taugen — auch angeschlossene iPhones.
     private func availableCameras() -> [AVCaptureDevice] {
         AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
             mediaType: .video, position: .unspecified).devices
+    }
+
+    /// Ein iPhone taucht erst auf, wenn es gesperrt und in Reichweite ist — oft
+    /// später als der Dialog. Deshalb auf An- und Abstecken horchen, statt die
+    /// Liste nur einmal beim Öffnen zu lesen.
+    private func watchForDeviceChanges() {
+        guard observers.isEmpty else { return }
+        for name in [AVCaptureDevice.wasConnectedNotification, AVCaptureDevice.wasDisconnectedNotification] {
+            let token = NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.devicesChanged() }
+            }
+            observers.append(token)
+        }
+    }
+
+    private func devicesChanged() {
+        let found = availableCameras()
+        cameras = found
+        guard let best = preferredCamera(from: found) else { return }
+        // Kommt etwas Besseres dazu (iPhone mit Autofokus), darauf wechseln.
+        let current = found.first { $0.uniqueID == selectedCameraID }
+        let currentIsWorse = current == nil
+            || (!current!.isFocusModeSupported(.continuousAutoFocus) && best.isFocusModeSupported(.continuousAutoFocus))
+        if currentIsWorse, best.uniqueID != selectedCameraID {
+            selectedCameraID = best.uniqueID
+        }
+    }
+
+    /// Sind nur virtuelle Kameras da, hilft ein Hinweis mehr als ein schwarzes Bild.
+    var onlyVirtualCameras: Bool {
+        !cameras.isEmpty && cameras.allSatisfy { CameraChoice.isVirtual($0.localizedName) }
+    }
+
+    /// Kameraliste von Hand neu einlesen — für den Knopf im Dialog.
+    func refreshCameras() async {
+        devicesChanged()
+        if state != .running { await start() }
     }
 
     func start() async {
@@ -62,6 +100,7 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureVideoDataOutput
             return
         }
 
+        watchForDeviceChanges()
         cameras = availableCameras()
         guard !cameras.isEmpty else {
             state = .unavailable("Keine Kamera gefunden.")
@@ -172,6 +211,13 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureVideoDataOutput
         state = .starting
         seen.removeAll()
         lastISBN = nil
+    }
+
+    /// Beim Schließen des Dialogs auch die Beobachter abräumen.
+    func teardown() {
+        stop()
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers.removeAll()
     }
 
     /// Jedes Kamerabild durch Vision schicken wäre Verschwendung — ein Blick alle
