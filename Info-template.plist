@@ -11,4 +11,5 @@
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>NSCameraUsageDescription</key><string>Zum Scannen des Strichcodes auf der Rückseite deiner Bücher.</string>
 </dict></plist>

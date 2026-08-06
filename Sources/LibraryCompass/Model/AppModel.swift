@@ -12,6 +12,7 @@ enum ViewMode: String {
 enum ActiveDialog: Equatable {
     case isbn
     case importer
+    case scanner
 }
 
 /// Zustand des Fensters (README §7, ohne Genre) plus Zugriff auf den Store.
@@ -192,6 +193,31 @@ final class AppModel {
         } catch {
             lookupMessage = "Metadaten konnten nicht geladen werden: \(error.localizedDescription)"
         }
+    }
+
+    // MARK: Scannen
+
+    /// Titel der in dieser Sitzung gescannten Bücher — Rückmeldung im Scan-Dialog.
+    private(set) var scannedTitles: [String] = []
+
+    /// Ein gescannter Strichcode geht denselben Weg wie eine eingetippte ISBN:
+    /// vorhandenes Buch wird aufgefrischt, neues angelegt und nachgeschlagen.
+    func addScanned(isbn: String) {
+        guard let book = addBook(isbn: isbn) else { return }
+        let placeholder = book.title.isEmpty ? isbn : book.title
+        scannedTitles.append(placeholder)
+        Task { @MainActor in
+            // Nach dem Lookup steht der richtige Titel — Anzeige nachziehen.
+            await fillMetadata(for: book)
+            if let index = scannedTitles.lastIndex(of: placeholder), !book.title.isEmpty {
+                scannedTitles[index] = book.title
+            }
+        }
+    }
+
+    func finishScanning() {
+        scannedTitles.removeAll()
+        dialog = nil
     }
 
     // MARK: Export

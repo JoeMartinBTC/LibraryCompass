@@ -22,6 +22,12 @@ struct LibraryCompassApp: App {
         .defaultSize(width: 1440, height: 920)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .newItem) {
+                Button("Buch scannen …") { model.dialog = .scanner }
+                    .keyboardShortcut("k", modifiers: .command)
+                Button("Buch per ISBN …") { model.dialog = .isbn }
+                    .keyboardShortcut("n", modifiers: .command)
+            }
             CommandGroup(after: .saveItem) {
                 Button("Bibliothek exportieren …") { model.exportLibrary() }
                     .keyboardShortcut("e", modifiers: .command)

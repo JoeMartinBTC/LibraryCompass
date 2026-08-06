@@ -35,6 +35,8 @@ struct LibraryView: View {
                 ISBNSheet(model: model)
             } else if model.dialog == .importer {
                 ImportSheet(model: model)
+            } else if model.dialog == .scanner {
+                ScanSheet(model: model)
             }
         }
         .frame(minWidth: 900, minHeight: 600)
