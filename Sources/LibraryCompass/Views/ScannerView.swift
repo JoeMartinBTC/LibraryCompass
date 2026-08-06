@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftUI
+import Vision
 import LibraryCompassCore
 
 /// Kamerabild mit Strichcode-Erkennung. Liest EAN-13 (die ISBN auf der Buchrückseite),
@@ -10,7 +11,7 @@ import LibraryCompassCore
 /// weiter weg zu klein. Dagegen hilft nur: höchste Auflösung fahren und das Buch
 /// dort halten, wo die Kamera scharf stellt — meist 25–40 cm.
 @MainActor
-final class BarcodeScanner: NSObject, ObservableObject, AVCaptureMetadataOutputObjectsDelegate {
+final class BarcodeScanner: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
     enum State: Equatable {
         case starting
@@ -35,6 +36,8 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureMetadataOutputO
     let session = AVCaptureSession()
     private var seen = Set<String>()
     private let queue = DispatchQueue(label: "de.storymaster.librarycompass.scanner")
+    private let frameQueue = DispatchQueue(label: "de.storymaster.librarycompass.frames")
+    private let lastFrameTime = Timestamp()
 
     /// Alle Kameras, die für einen Scan taugen — auch angeschlossene iPhones.
     private func availableCameras() -> [AVCaptureDevice] {
@@ -115,18 +118,18 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureMetadataOutputO
         session.sessionPreset = .high
         useHighestFormat(device)
 
-        let output = AVCaptureMetadataOutput()
+        // Die Bilder gehen an Vision statt an AVCaptureMetadataOutput: dessen
+        // `availableMetadataObjectTypes` blieb bei dieser Webcam leer (live geprüft
+        // 2026-08-06, auch nach `startRunning`) — damit erkennt es gar nichts.
+        let output = AVCaptureVideoDataOutput()
         guard session.canAddOutput(output) else {
             session.commitConfiguration()
             state = .unavailable("Strichcode-Erkennung nicht verfügbar.")
             return
         }
+        output.alwaysDiscardsLateVideoFrames = true
         session.addOutput(output)
-        output.setMetadataObjectsDelegate(self, queue: .main)
-        // Erst nach addOutput gefüllt — vorher ist die Liste leer.
-        output.metadataObjectTypes = [.ean13, .ean8, .qr].filter {
-            output.availableMetadataObjectTypes.contains($0)
-        }
+        output.setSampleBufferDelegate(self, queue: frameQueue)
         session.commitConfiguration()
 
         let session = session
@@ -171,20 +174,40 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureMetadataOutputO
         lastISBN = nil
     }
 
-    nonisolated func metadataOutput(_ output: AVCaptureMetadataOutput,
-                                    didOutput objects: [AVMetadataObject],
-                                    from connection: AVCaptureConnection) {
-        let codes = objects.compactMap { ($0 as? AVMetadataMachineReadableCodeObject)?.stringValue }
-        MainActor.assumeIsolated {
-            for code in codes {
-                guard let isbn = ScannedCode.isbn(from: code), !seen.contains(isbn) else { continue }
-                seen.insert(isbn)
-                lastISBN = isbn
-                NSSound.beep()
-                return
-            }
+    /// Jedes Kamerabild durch Vision schicken wäre Verschwendung — ein Blick alle
+    /// 200 ms reicht, um ein vorgehaltenes Buch zu erkennen.
+    nonisolated func captureOutput(_ output: AVCaptureOutput,
+                                   didOutput sampleBuffer: CMSampleBuffer,
+                                   from connection: AVCaptureConnection) {
+        guard let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+
+        let now = CFAbsoluteTimeGetCurrent()
+        guard now - lastFrameTime.value >= 0.2 else { return }
+        lastFrameTime.value = now
+
+        let request = VNDetectBarcodesRequest()
+        request.symbologies = [.ean13, .ean8, .upce, .qr]
+        try? VNImageRequestHandler(cvPixelBuffer: pixels).perform([request])
+
+        let codes = (request.results ?? []).compactMap(\.payloadStringValue)
+        guard !codes.isEmpty else { return }
+        Task { @MainActor in self.accept(codes) }
+    }
+
+    private func accept(_ codes: [String]) {
+        for code in codes {
+            guard let isbn = ScannedCode.isbn(from: code), !seen.contains(isbn) else { continue }
+            seen.insert(isbn)
+            lastISBN = isbn
+            NSSound.beep()
+            return
         }
     }
+}
+
+/// Zeitstempel der letzten Auswertung — der Kamera-Delegate läuft außerhalb des Hauptakteurs.
+private final class Timestamp: @unchecked Sendable {
+    var value: CFAbsoluteTime = 0
 }
 
 /// Das Live-Bild der Kamera.
