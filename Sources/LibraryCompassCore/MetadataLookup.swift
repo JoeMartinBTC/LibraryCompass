@@ -462,29 +462,45 @@ public actor MetadataLookup {
 
         guard var metadata = result else { return nil }
 
-        // Amazon zuerst: nur diese Quelle trifft die Ausgabe, die im Regal steht.
-        if let amazon = AmazonCover.url(isbn: isbn), let cover = await usableCover(amazon) {
-            metadata.coverURL = cover
-        }
-
-        if metadata.coverURL == nil, let cover = await usableOpenLibraryCover(isbn: isbn) {
-            metadata.coverURL = cover
-        }
-
-        // Die DNB liefert nie ein Bild. Fehlt es noch, ist Google die letzte Quelle,
-        // die eines haben kann — auch wenn Titel und Autor längst feststehen.
-        if metadata.coverURL == nil, !askedGoogle, let google = try? await googleBooks(isbn: isbn) {
-            metadata.coverURL = google.coverURL
-            if metadata.year == nil { metadata.year = google.year }
-            if metadata.pages == nil { metadata.pages = google.pages }
-        }
-        // Letzte Cover-Stufe: Titelsuche, aber nur mit Autor-Abgleich — DNB-Treffer
-        // haben nie ein Cover dabei, und reine Titelsuche liefert falsche Bilder.
-        if metadata.coverURL == nil,
-           let cover = try? await coverByTitle(title: metadata.title, author: metadata.author) {
-            metadata.coverURL = cover
+        if metadata.coverURL == nil || !askedGoogle {
+            metadata.coverURL = await coverURL(isbn: isbn,
+                                               title: metadata.title,
+                                               author: metadata.author,
+                                               skipGoogleISBN: askedGoogle,
+                                               current: metadata.coverURL)
         }
         return metadata
+    }
+
+    /// Cover-Kette getrennt vom Metadaten-Lookup: Bestandsbücher haben Titel und Autor
+    /// längst, ihnen fehlt nur das Bild — und zu manchen ISBN gibt es Metadaten nirgends,
+    /// wohl aber ein Cover.
+    public func coverURL(isbn: String, title: String = "", author: String = "") async -> URL? {
+        await coverURL(isbn: isbn, title: title, author: author, skipGoogleISBN: false, current: nil)
+    }
+
+    private func coverURL(isbn: String,
+                          title: String,
+                          author: String,
+                          skipGoogleISBN: Bool,
+                          current: URL?) async -> URL? {
+        // Amazon zuerst: nur diese Quelle trifft die Ausgabe, die im Regal steht.
+        if let amazon = AmazonCover.url(isbn: isbn), let cover = await usableCover(amazon) {
+            return cover
+        }
+        if let current { return current }
+
+        if !isbn.isEmpty, let cover = await usableOpenLibraryCover(isbn: isbn) { return cover }
+
+        // Die DNB liefert nie ein Bild. Google ist die letzte Quelle, die eines zur
+        // ISBN haben kann — auch wenn Titel und Autor längst feststehen.
+        if !isbn.isEmpty, !skipGoogleISBN,
+           let google = try? await googleBooks(isbn: isbn), let cover = google.coverURL {
+            return cover
+        }
+        // Letzte Stufe: Titelsuche, aber nur mit Autor-Abgleich — reine Titelsuche
+        // liefert falsche Bilder.
+        return try? await coverByTitle(title: title, author: author)
     }
 
     /// Google Books sequenziell mit Backoff bei 429.

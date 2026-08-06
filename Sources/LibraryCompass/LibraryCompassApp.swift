@@ -36,6 +36,9 @@ enum LaunchOptions {
         return CommandLine.arguments[index + 1]
     }
 
+    /// `--fetch-covers` holt Cover für den vorhandenen Bestand nach und beendet die App.
+    static var fetchesCovers: Bool { CommandLine.arguments.contains("--fetch-covers") }
+
     static var screenshotPath: String? {
         guard let index = CommandLine.arguments.firstIndex(of: "--screenshot"),
               CommandLine.arguments.count > index + 1 else { return nil }
@@ -106,11 +109,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+
+        if LaunchOptions.fetchesCovers {
+            Task { @MainActor in
+                await Self.fetchCovers()
+                NSApp.terminate(nil)
+            }
+            return
+        }
+
         guard let path = LaunchOptions.screenshotPath else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             Self.capture(to: path)
             NSApp.terminate(nil)
         }
+    }
+
+    /// Cover-Nachlauf über den echten Store, sequenziell — Fortschritt auf die Konsole.
+    @MainActor
+    static func fetchCovers() async {
+        guard let container = try? LibraryStore.defaultContainer() else {
+            FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
+            return
+        }
+        let context = ModelContext(container)
+        let report = try? await CoverBackfill.run(context: context) { done, total, title in
+            print("[\(done)/\(total)] \(title)")
+            fflush(stdout)
+        }
+        print(report?.summary ?? "Nachlauf fehlgeschlagen")
+        fflush(stdout)
     }
 
     @MainActor
