@@ -32,7 +32,7 @@ final class LookupTests: XCTestCase {
         guard let metadata = try await lookup.metadata(isbn: "9783785728390") else {
             return XCTFail("Kein Treffer für ISBN 9783785728390")
         }
-        XCTAssertEqual(metadata.title, "Toxin: Thriller")
+        XCTAssertEqual(metadata.title, "Toxin")
         XCTAssertTrue(metadata.author.contains("Lange"), metadata.author)
         XCTAssertEqual(metadata.year, 2023)
         XCTAssertEqual(metadata.pages, 459)

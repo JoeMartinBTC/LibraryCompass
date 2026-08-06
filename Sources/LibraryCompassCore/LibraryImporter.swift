@@ -42,7 +42,11 @@ public enum LibraryImporter {
         let total = parsed.books.count
 
         for (index, imported) in parsed.books.enumerated() {
-            let key = imported.duplicateKey
+            // Exportdaten tragen Gattungszusätze („Wer Lügen sät: Thriller").
+            // Der Schlüssel muss auf demselben Titel rechnen wie der gespeicherte,
+            // sonst legt ein zweiter Import Bücher ohne ISBN doppelt an.
+            let title = TitleCleanup.clean(imported.title)
+            let key = DuplicateKey.make(isbn: imported.isbn, title: title, author: imported.author)
             if known.contains(key) {
                 report.skippedDuplicates += 1
             } else {
@@ -50,7 +54,7 @@ public enum LibraryImporter {
                 // Importierte Bücher gelten als gelesen; Delicious Library führte
                 // kein Gelesen-Kennzeichen, also dient das Erfassungsdatum dafür.
                 context.insert(Book(isbn: imported.isbn,
-                                    title: imported.title,
+                                    title: title,
                                     author: imported.author,
                                     rating: imported.rating,
                                     comment: imported.comment,

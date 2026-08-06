@@ -26,7 +26,7 @@ final class DNBLookupTests: XCTestCase {
 
     func testRecordYieldsTitleAuthorYearPages() throws {
         let metadata = try XCTUnwrap(DNB.parse(Data(toxinRecord.utf8)))
-        XCTAssertEqual(metadata.title, "Toxin: Thriller")
+        XCTAssertEqual(metadata.title, "Toxin")
         XCTAssertEqual(metadata.author, "Lange, Kathrin; Thiele, Susanne")
         XCTAssertEqual(metadata.year, 2023)
         XCTAssertEqual(metadata.pages, 459)
@@ -35,7 +35,7 @@ final class DNBLookupTests: XCTestCase {
 
     func testTitleDropsStatementOfResponsibility() throws {
         let xml = record(title: "Stillhalten : Roman / Nina Jäckle", creators: ["Jäckle, Nina [Verfasser]"])
-        XCTAssertEqual(try XCTUnwrap(DNB.parse(Data(xml.utf8))).title, "Stillhalten: Roman")
+        XCTAssertEqual(try XCTUnwrap(DNB.parse(Data(xml.utf8))).title, "Stillhalten")
     }
 
     func testTitleWithoutSubtitleStaysUnchanged() throws {
@@ -81,7 +81,7 @@ final class DNBLookupTests: XCTestCase {
 
         let result = try await lookup.metadata(isbn: "978-3-7857-2839-0")
         let metadata = try XCTUnwrap(result)
-        XCTAssertEqual(metadata.title, "Toxin: Thriller")
+        XCTAssertEqual(metadata.title, "Toxin")
         XCTAssertEqual(metadata.author, "Lange, Kathrin; Thiele, Susanne")
     }
 
@@ -120,7 +120,7 @@ final class DNBLookupTests: XCTestCase {
 
         let result = try await lookup.metadata(isbn: "9783785728390")
         let metadata = try XCTUnwrap(result)
-        XCTAssertEqual(metadata.title, "Toxin: Thriller", "Titel bleibt der der DNB")
+        XCTAssertEqual(metadata.title, "Toxin", "Titel bleibt der der DNB")
         XCTAssertEqual(metadata.coverURL?.host, "books.google.com")
         XCTAssertEqual(metadata.coverURL?.scheme, "https")
     }

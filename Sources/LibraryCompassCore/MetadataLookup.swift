@@ -330,13 +330,10 @@ public enum DNB {
         return metadata.isEmpty ? nil : metadata
     }
 
-    /// „Toxin : Thriller / Kathrin Lange" → „Toxin: Thriller".
-    /// Hinter dem Schrägstrich steht die Verfasserangabe, die schon im Autorfeld steht.
+    /// „Toxin : Thriller / Kathrin Lange" → „Toxin".
+    /// Der Katalogtitel trägt Ausgabevariante, Verfasserangabe und Gattung mit sich.
     static func title(from raw: String) -> String {
-        let withoutResponsibility = raw.components(separatedBy: " / ").first ?? raw
-        return withoutResponsibility
-            .replacingOccurrences(of: " : ", with: ": ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        TitleCleanup.clean(raw.replacingOccurrences(of: " : ", with: ": "))
     }
 
     /// „Lange, Kathrin [Verfasser]" → „Lange, Kathrin". Verfasser haben Vorrang;

@@ -102,6 +102,8 @@ public enum DeliciousLibraryImport {
         let isbn = string(entry["isbn"]).isEmpty ? string(entry["ean"]) : string(entry["isbn"])
         var book = ImportedBook()
         book.isbn = isbn
+        // Rohtitel wie im Export — bereinigt wird erst beim Anlegen (LibraryImporter),
+        // damit sich die Wirkung der Regel gegen die Originaldaten messen lässt.
         book.title = string(entry["title"])
         book.author = string(entry["creatorsCompositeString"])
         book.comment = multiline(entry["notes"])
