@@ -21,8 +21,10 @@ struct LibraryCompassApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1440, height: 920)
         .commands {
-            CommandGroup(replacing: .newItem) {}
-            CommandGroup(after: .newItem) {
+            // Beides muss in *eine* Gruppe: `replacing:` leert die Gruppe, ein
+            // zusätzliches `after:` auf dieselbe Gruppe verschwindet mit ihr —
+            // dann gibt es die Menüpunkte nicht und Cmd-K bleibt unbelegt.
+            CommandGroup(replacing: .newItem) {
                 Button("Buch scannen …") { model.dialog = .scanner }
                     .keyboardShortcut("k", modifiers: .command)
                 Button("Buch per ISBN …") { model.dialog = .isbn }
@@ -268,6 +270,7 @@ struct RootView: View {
         case "list": model.viewMode = .list
         case "detail", "wide": model.selection = model.rows.first
         case "isbn": model.dialog = .isbn
+        case "scan": model.dialog = .scanner
         case "import": model.dialog = .importer
         case "empty": model.search = "zzzz"
         default: break

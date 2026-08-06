@@ -63,6 +63,12 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureVideoDataOutput
         }
 
         cameras = availableCameras()
+        // Ins Systemprotokoll, damit von außen nachvollziehbar ist, was die App
+        // wirklich sieht: `log show --last 5m --predicate 'eventMessage CONTAINS "LibraryCompass Kameras"'`.
+        NSLog("LibraryCompass Kameras (%d): %@ | Recht: %d",
+              cameras.count,
+              cameras.map(\.localizedName).joined(separator: " · "),
+              AVCaptureDevice.authorizationStatus(for: .video).rawValue)
         guard !cameras.isEmpty else {
             state = .unavailable("Keine Kamera gefunden.")
             return
