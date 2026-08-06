@@ -49,6 +49,11 @@ final class BarcodeScanner: NSObject, ObservableObject, AVCaptureVideoDataOutput
     func start() async {
         guard state != .running else { return }
 
+        // Ganz an den Anfang: Bei verweigertem Recht kehrt start() früh zurück —
+        // ein Log hinter dem Rechte-Check schweigt dann und verrät nichts.
+        NSLog("LibraryCompass Scanner start, Kamerarecht=%d (0=unbestimmt 2=verweigert 3=erlaubt)",
+              AVCaptureDevice.authorizationStatus(for: .video).rawValue)
+
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             break
