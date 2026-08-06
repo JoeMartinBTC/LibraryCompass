@@ -20,7 +20,14 @@ struct LibraryCompassApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1440, height: 920)
-        .commands { CommandGroup(replacing: .newItem) {} }
+        .commands {
+            CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .saveItem) {
+                Button("Bibliothek exportieren …") { model.exportLibrary() }
+                    .keyboardShortcut("e", modifiers: .command)
+                Button("Alle als gelesen markieren") { model.markAllAsRead() }
+            }
+        }
     }
 }
 
@@ -38,6 +45,16 @@ enum LaunchOptions {
 
     /// `--fetch-covers` holt Cover für den vorhandenen Bestand nach und beendet die App.
     static var fetchesCovers: Bool { CommandLine.arguments.contains("--fetch-covers") }
+
+    /// `--mark-read` trägt bei allen Büchern ohne Gelesen-Datum das Erfassungsdatum ein.
+    static var marksRead: Bool { CommandLine.arguments.contains("--mark-read") }
+
+    /// `--export <pfad>` schreibt die Bibliothek als CSV und beendet die App.
+    static var exportPath: String? {
+        guard let index = CommandLine.arguments.firstIndex(of: "--export"),
+              CommandLine.arguments.count > index + 1 else { return nil }
+        return CommandLine.arguments[index + 1]
+    }
 
     static var screenshotPath: String? {
         guard let index = CommandLine.arguments.firstIndex(of: "--screenshot"),
@@ -118,11 +135,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        if LaunchOptions.marksRead || LaunchOptions.exportPath != nil {
+            Task { @MainActor in
+                Self.runStoreCommands()
+                NSApp.terminate(nil)
+            }
+            return
+        }
+
         guard let path = LaunchOptions.screenshotPath else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             Self.capture(to: path)
             NSApp.terminate(nil)
         }
+    }
+
+    /// Gelesen-Markierung und Export ohne Fenster — für Pflegeläufe auf dem echten Store.
+    @MainActor
+    static func runStoreCommands() {
+        guard let container = try? LibraryStore.defaultContainer() else {
+            FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
+            return
+        }
+        let context = ModelContext(container)
+
+        if LaunchOptions.marksRead {
+            print("als gelesen markiert: \(ReadDates.markAllAsRead(in: context))")
+        }
+        if let path = LaunchOptions.exportPath {
+            let books = (try? context.fetch(FetchDescriptor<Book>())) ?? []
+            do {
+                try LibraryExport.csv(books).write(toFile: path, atomically: true, encoding: .utf8)
+                print("exportiert: \(books.count) Bücher → \(path)")
+            } catch {
+                FileHandle.standardError.write(Data("Export fehlgeschlagen: \(error)\n".utf8))
+            }
+        }
+        fflush(stdout)
     }
 
     /// Cover-Nachlauf über den echten Store, sequenziell — Fortschritt auf die Konsole.

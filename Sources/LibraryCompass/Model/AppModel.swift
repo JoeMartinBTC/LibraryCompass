@@ -1,6 +1,8 @@
+import AppKit
 import Foundation
 import Observation
 import SwiftData
+import UniformTypeIdentifiers
 import LibraryCompassCore
 
 enum ViewMode: String {
@@ -190,6 +192,28 @@ final class AppModel {
         } catch {
             lookupMessage = "Metadaten konnten nicht geladen werden: \(error.localizedDescription)"
         }
+    }
+
+    // MARK: Export
+
+    /// Bibliothek als CSV sichern — Speicherort wählt der Nutzer.
+    func exportLibrary() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = LibraryExport.fileName
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try LibraryExport.csv(books).write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            NSLog("LibraryCompass Export: %@", error.localizedDescription)
+        }
+    }
+
+    /// Alles ohne eigenes Gelesen-Datum bekommt das Erfassungsdatum.
+    func markAllAsRead() {
+        ReadDates.markAllAsRead(in: context)
+        reload()
     }
 
     // MARK: Import

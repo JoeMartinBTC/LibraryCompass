@@ -47,11 +47,14 @@ public enum LibraryImporter {
                 report.skippedDuplicates += 1
             } else {
                 known.insert(key)
+                // Importierte Bücher gelten als gelesen; Delicious Library führte
+                // kein Gelesen-Kennzeichen, also dient das Erfassungsdatum dafür.
                 context.insert(Book(isbn: imported.isbn,
                                     title: imported.title,
                                     author: imported.author,
                                     rating: imported.rating,
                                     comment: imported.comment,
+                                    readDate: imported.addedDate,
                                     addedDate: imported.addedDate,
                                     year: imported.year,
                                     pages: imported.pages))

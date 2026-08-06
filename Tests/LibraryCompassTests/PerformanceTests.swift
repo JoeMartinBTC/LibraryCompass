@@ -16,21 +16,23 @@ final class PerformanceTests: XCTestCase {
         let books = try fullLibrary()
         XCTAssertEqual(books.count, 1780)
 
-        let queries = [
-            BookQuery(filter: .alle, search: "der", sort: .titel),
-            BookQuery(filter: .bewertet, search: "sch", sort: .autor),
-            BookQuery(filter: .ungelesen, search: "", sort: .jahr),
-            BookQuery(filter: .alle, search: "", sort: .bewertung),
-            BookQuery(filter: .alle, search: "e", sort: .zuletztGelesen)
+        // „ungelesen" bleibt nach dem Import leer, weil importierte Bücher als
+        // gelesen gelten — die Abfrage muss trotzdem in der Zeit bleiben.
+        let queries: [(query: BookQuery, expectsResults: Bool)] = [
+            (BookQuery(filter: .alle, search: "der", sort: .titel), true),
+            (BookQuery(filter: .bewertet, search: "sch", sort: .autor), true),
+            (BookQuery(filter: .ungelesen, search: "", sort: .jahr), false),
+            (BookQuery(filter: .alle, search: "", sort: .bewertung), true),
+            (BookQuery(filter: .alle, search: "e", sort: .zuletztGelesen), true)
         ]
 
-        for query in queries {
+        for (query, expectsResults) in queries {
             let start = DispatchTime.now().uptimeNanoseconds
             let result = query.apply(to: books)
             let seconds = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000_000
             XCTAssertLessThan(seconds, 0.1,
                               "Filter+Sort (\(query.filter), \(query.sort)) dauerte \(seconds) s")
-            XCTAssertFalse(result.isEmpty)
+            if expectsResults { XCTAssertFalse(result.isEmpty) }
         }
     }
 

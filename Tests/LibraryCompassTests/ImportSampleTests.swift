@@ -21,8 +21,10 @@ final class ImportSampleTests: XCTestCase {
         XCTAssertEqual(books.filter { $0.rating > 0 }.count, 105)
         XCTAssertEqual(books.filter { !$0.comment.isEmpty }.count, 83)
         XCTAssertEqual(books.filter { !$0.title.isEmpty }.count, 106)
-        // hasExperienced wurde in Delicious Library nie gepflegt — Gelesen-Datum bleibt leer.
-        XCTAssertEqual(books.filter { $0.readDate != nil }.count, 0)
+        // Importierte Bücher gelten als gelesen (Entscheid 2026-08-06). Delicious Library
+        // pflegte `hasExperienced` nie, deshalb dient das Erfassungsdatum als Gelesen-Datum.
+        XCTAssertEqual(books.filter { $0.readDate != nil }.count, 108)
+        XCTAssertEqual(books.filter { $0.readDate == $0.addedDate }.count, 108)
     }
 
     func testSecondImportOfSameFileCreatesNoDuplicates() throws {
