@@ -14,6 +14,7 @@ struct ScanSheet: View {
             VStack(alignment: .leading, spacing: Space.s4) {
                 header
                 camera
+                cameraPicker
                 if !model.scannedTitles.isEmpty { results }
                 footer
             }
@@ -37,7 +38,8 @@ struct ScanSheet: View {
                 Text("Buch scannen")
                     .lcType(.sheetTitle)
                     .foregroundStyle(lc.text)
-                Text("Strichcode auf der Rückseite vor die Kamera halten.")
+                // Ohne Autofokus ist der Abstand entscheidend — zu nah wird unscharf.
+                Text("Strichcode etwa 25–40 cm entfernt halten, bis das Bild scharf ist.")
                     .lcType(.caption)
                     .foregroundStyle(lc.text2)
             }
@@ -74,6 +76,28 @@ struct ScanSheet: View {
                 .foregroundStyle(lc.text2)
                 .multilineTextAlignment(.center)
                 .padding(Space.s4)
+        }
+    }
+
+    /// Mehrere Kameras sind die Regel — virtuelle (OBS und Co.) liefern kein Bild.
+    @ViewBuilder
+    private var cameraPicker: some View {
+        if scanner.cameras.count > 1 {
+            HStack(spacing: 8) {
+                Picker("Kamera", selection: $scanner.selectedCameraID) {
+                    ForEach(scanner.cameras, id: \.uniqueID) { device in
+                        Text(device.localizedName).tag(device.uniqueID)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 280)
+                if !scanner.resolution.isEmpty {
+                    Text(scanner.resolution)
+                        .lcType(.caption)
+                        .foregroundStyle(lc.text2)
+                }
+                Spacer()
+            }
         }
     }
 

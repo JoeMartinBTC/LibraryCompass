@@ -62,6 +62,27 @@ struct ISBNSheet: View {
                     .accessibilityIdentifier("field.isbn")
 
                 HStack(spacing: 9) {
+                    // Zweiter Weg zum selben Ziel: Strichcode statt Tippen.
+                    Button {
+                        model.isbnInput = ""
+                        model.dialog = .scanner
+                    } label: {
+                        HStack(spacing: 6) {
+                            LineSymbol(name: "barcode.viewfinder", size: 14, weight: .medium)
+                            Text("Scannen")
+                        }
+                        .lcType(.caption)
+                        .foregroundStyle(lc.text)
+                        .padding(.horizontal, 14)
+                        .frame(height: Metrics.controlDialog)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(lc.brd, lineWidth: 1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("btn.openScanner")
+
                     Spacer()
                     Button("Abbrechen") { close() }
                         .buttonStyle(.plain)
