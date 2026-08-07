@@ -86,6 +86,26 @@ Ein echter Nichttreffer antwortet mit 43 Byte und greift damit im Größencheck.
 - **Google meldet `pageCount: 0`**, wenn der Umfang unbekannt ist — das gilt als keine
   Angabe, nicht als null Seiten.
 
+## Titel-Bereinigung
+
+Katalogtitel schleppen Ballast mit, der nicht auf dem Buchrücken steht.
+`TitleCleanup.clean` (greift bei Lookup **und** Import) entfernt:
+
+- Ausgabevariante in eckigen Klammern: `[Upgrade] ; Upgrade: Roman` → `Upgrade`
+- weitere Fassungen hinter `" ; "`, Verfasserangabe hinter `" / "`
+- Klappentext-Reste, die auf `...` enden
+- **reine** Gattungszusätze (Roman, Thriller, Kriminalroman, …; max. 3 Wörter,
+  alle aus der Wortliste): `Wer Lügen sät: Thriller` → `Wer Lügen sät`
+
+Echte Untertitel bleiben (`Sapiens: Eine kurze Geschichte der Menschheit`), ebenso
+Aufzählungen mit mehreren Gedankenstrichen (`Wäller Weihnacht. Gedichte - Brauchtum -
+Geschichten`). Zwei Invarianten sind als Test gegen die echten Exportdaten verankert:
+kein Titel wird leer, jede Kürzung ist ein Präfix des Originals. Gemessene Wirkung:
+18 von 108 Titeln im Sample, 199 von 1780 im Vollbestand.
+
+⚠️ Der Dublettenschlüssel muss mit dem **bereinigten** Titel rechnen — sonst legt ein
+zweiter Import Bücher ohne ISBN doppelt an (live passiert, per Test abgesichert).
+
 ## Dubletten
 
 Dieselbe ISBN zweimal einzugeben legt kein zweites Buch an: `LibraryStore.book(isbn:in:)`
@@ -96,8 +116,20 @@ Der Import nutzt `DuplicateKey`: ISBN als Schlüssel, ersatzweise Titel + Autor 
 Kleinschreibung. Bücher ohne ISBN lassen sich damit nur über Titel und Autor
 unterscheiden — fehlt beides, greift der Schutz nicht.
 
-## Bekannte Lücke
+## Cover-Nachlauf für den Bestand
 
-Für Bücher aus dem Import gibt es **keinen Cover-Nachlauf**. Cover werden nur beim
-Hinzufügen per ISBN geladen; die importierten Bände bleiben ohne Bild, bis ihre ISBN
-erneut eingegeben wird.
+Importierte Bücher kommen ohne Bild. `CoverBackfill` holt Cover für alles nach, was
+keins hat — sequenziell mit 1 s Pause (Google drosselt Schwälle):
+
+```bash
+./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-covers
+```
+
+Nur bei geschlossener App laufen lassen (gleicher SwiftData-Store). Lauf über den
+echten Bestand am 2026-08-05: `geprüft=109 ergänzt=101`. Die Reste: Bücher ohne ISBN
+und ohne Autor (Titelsuche wird zu Recht verworfen) sowie alte ISBN-10, zu denen auch
+Amazon nichts führt.
+
+Wichtig dabei: Die Cover-Kette ist eine eigene Methode (`coverURL(isbn:title:author:)`)
+und läuft auch, wenn **keine** Quelle Metadaten liefert — Metadaten-Treffer und
+Cover-Treffer sind unabhängige Ereignisse.

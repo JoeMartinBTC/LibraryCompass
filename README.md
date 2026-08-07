@@ -1,23 +1,42 @@
 # LibraryCompass
 
-Simple native macOS app to catalog physical books: scan/enter ISBN, fetch freely
-available metadata (title, author, cover), add personal star rating, comment, and
-read date. Deliberately minimal — a stripped-down successor to Delicious Library
-for personal use.
+Simple native macOS app to catalog physical books: scan or enter an ISBN, fetch
+freely available metadata (title, author, cover), add a personal star rating,
+comment, and read date. Deliberately minimal — a stripped-down successor to
+Delicious Library for personal use.
 
-## Scope (Phase 1 — Mac only)
+## Features (Phase 1 — Mac only)
 
-- Import module for Delicious Library plist XML export (~1,780 books)
-- Book list with cover, title, author, own rating, own comment, read date
-- Add books by ISBN (manual entry), metadata via Open Library / Google Books
-- Local persistence, no account, no server
+- **Barcode scanning** via camera (⌘K) — EAN-13/ISBN with check-digit validation,
+  iPhone works as a Continuity Camera and is preferred for its autofocus.
+  Details and pitfalls: **[docs/scanner.md](docs/scanner.md)**
+- **Add by ISBN** (⌘N), metadata via Open Library → DNB → Google Books,
+  covers edition-exact from Amazon by ISBN-10: **[docs/lookup.md](docs/lookup.md)**
+- **Import** of the Delicious Library plist XML export — idempotent, keeps own
+  ratings/comments, marks imported books as read (added date = read date),
+  strips catalog clutter from titles ("Wer Lügen sät: Thriller" → "Wer Lügen sät")
+- **CSV export** (⌘E) — all ten fields, RFC 4180 with BOM so Excel shows umlauts
+- Library UI: grid/list, search, filters, sort, stats cards, zoom, light/dark
+- Local persistence (SwiftData), no account, no server
 
-Out of scope for now: iPhone app, sync, barcode camera scan.
+Out of scope for now: iPhone app, sync.
 
-## Status
+## Build & install
 
-Phase 1 built. `./make-app.sh` builds the bundle, `./install-app.sh` puts it into
-`/Applications`, `swift test` runs the suite.
+```bash
+./make-app.sh      # build the .app bundle (SwiftPM release + ad-hoc signing)
+./install-app.sh   # install to /Applications (resets the TCC camera grant — see docs/scanner.md)
+swift test         # 159 tests, including live network checks
+./ui-test.sh       # XCUI smoke tests via xcodegen project
+```
+
+Headless maintenance (app must be closed — same SwiftData store):
+
+```bash
+./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-covers        # backfill covers
+./LibraryCompass.app/Contents/MacOS/LibraryCompass --mark-read           # read date := added date
+./LibraryCompass.app/Contents/MacOS/LibraryCompass --export ~/books.csv  # CSV export
+```
 
 ## Metadata sources
 
@@ -38,11 +57,11 @@ The key lives outside the repo, next to the library database.
 
 | Path | Purpose |
 |---|---|
-| `Sources/LibraryCompassCore/` | model, store, import, query, stats, lookup, cover cache |
-| `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model |
-| `Tests/LibraryCompassTests/` | 108 tests, including live network checks |
+| `Sources/LibraryCompassCore/` | model, store, import/export, query, stats, lookup, cover cache, scan/title logic |
+| `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
+| `Tests/LibraryCompassTests/` | 159 tests, including live network checks |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
-| `docs/` | lookup strategy, Google Books key setup |
+| `docs/` | scanner (camera/TCC pitfalls), lookup strategy, Google Books key setup |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |
 
 Data lives in `~/Library/Application Support/LibraryCompass/` (SwiftData store,
