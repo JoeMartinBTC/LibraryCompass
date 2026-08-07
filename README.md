@@ -66,3 +66,7 @@ The key lives outside the repo, next to the library database.
 
 Data lives in `~/Library/Application Support/LibraryCompass/` (SwiftData store,
 cover cache, API key) — never in the repo.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
