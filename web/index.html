@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LibraryCompass — Mac-App für die eigene Bücherwand</title>
+<meta name="description" content="LibraryCompass ist eine minimale native macOS-App, um physische Bücher zu katalogisieren: Barcode scannen, Metadaten aus freien Quellen, eigene Bewertung und Notiz. Hobbyprojekt, quelloffen unter MIT.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23B45CFF'/%3E%3Cpath d='M18 16h11a5 5 0 0 1 5 5v27a4 4 0 0 0-4-4H18zM46 16H35a5 5 0 0 0-5 5v27a4 4 0 0 1 4-4h12z' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg1:#28104E; --bg2:#1B0C36; --bg3:#150A2C;
+    --glow1:#5A2497; --glow2:#2E3FA8; --glow3:#7A2A9E;
+    --glass:rgba(255,255,255,.055); --glass2:rgba(255,255,255,.10); --glass3:rgba(255,255,255,.16);
+    --brd:rgba(255,255,255,.11); --brd2:rgba(255,255,255,.20);
+    --text:#fff; --text2:rgba(255,255,255,.66); --text3:rgba(255,255,255,.40);
+    --accent:#B45CFF; --accent2:#7B3BE8; --accentInk:#fff;
+    --cyan:#4FD8E8; --mint:#56E39F; --gold:#FFC24F; --pink:#FF6BC1;
+    --shadowCard:0 2px 6px rgba(0,0,0,.22), 0 18px 44px rgba(0,0,0,.30);
+    --shadowShot:0 3px 10px rgba(0,0,0,.34), 0 24px 60px rgba(0,0,0,.45);
+    --glow:0 0 0 1px rgba(255,255,255,.14), 0 14px 40px rgba(180,92,255,.38);
+  }
+  html[data-theme="light"]{
+    --bg1:#FAF7FF; --bg2:#F3EEFD; --bg3:#F3EEFD;
+    --glow1:#E5D6FF; --glow2:#D9E3FF; --glow3:#F0DAFB;
+    --glass:rgba(255,255,255,.66); --glass2:rgba(255,255,255,.86); --glass3:rgba(124,70,200,.10);
+    --brd:rgba(74,38,124,.12); --brd2:rgba(74,38,124,.20);
+    --text:#1E1136; --text2:rgba(30,17,54,.62); --text3:rgba(30,17,54,.40);
+    --accent:#8B3FE0; --accent2:#6A29C4;
+    --cyan:#1F9BB0; --mint:#1E9E6A; --gold:#C8892A; --pink:#D4459B;
+    --shadowCard:0 2px 6px rgba(40,16,78,.06), 0 18px 44px rgba(40,16,78,.10);
+    --shadowShot:0 3px 10px rgba(40,16,78,.10), 0 24px 60px rgba(40,16,78,.16);
+    --glow:0 0 0 1px rgba(255,255,255,.6), 0 14px 40px rgba(139,63,224,.24);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text); background:var(--bg3);
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(120% 95% at 10% -12%, var(--glow1), transparent 60%),
+      radial-gradient(95% 80% at 97% 6%, var(--glow2), transparent 58%),
+      radial-gradient(70% 60% at 60% 108%, var(--glow3), transparent 55%),
+      linear-gradient(163deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 26px}
+  a{color:inherit}
+
+  /* ---- Kopfzeile ---- */
+  header{position:sticky; top:0; z-index:50; backdrop-filter:blur(24px);
+         background:color-mix(in srgb, var(--bg3) 62%, transparent); border-bottom:1px solid var(--brd)}
+  .bar{display:flex; align-items:center; gap:14px; height:62px}
+  .brand{display:flex; align-items:center; gap:11px; font-size:15px; font-weight:560; text-decoration:none; margin-right:auto}
+  .mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(150deg,var(--accent),var(--accent2));
+        box-shadow:0 3px 10px rgba(123,59,232,.45); display:grid; place-items:center; flex:0 0 auto}
+  .mark svg{width:16px;height:16px}
+  .ctl{display:flex; gap:3px; padding:3px; border-radius:12px; background:var(--glass); border:1px solid var(--brd)}
+  .ctl button{
+    appearance:none; border:0; cursor:pointer; background:transparent; color:var(--text3);
+    font:inherit; font-size:11.5px; font-weight:600; letter-spacing:.04em;
+    padding:5px 10px; border-radius:9px; transition:background .12s ease,color .12s ease;
+  }
+  .ctl button[aria-pressed="true"]{background:var(--glass3); color:var(--text)}
+  .ctl button:hover{color:var(--text)}
+  .gh{display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-size:13px; font-weight:500;
+      padding:8px 14px; border-radius:11px; border:1px solid var(--brd2); background:var(--glass);
+      transition:background .12s ease}
+  .gh:hover{background:var(--glass2)}
+  .gh svg{width:15px;height:15px;fill:currentColor}
+  @media(max-width:720px){ .gh span{display:none} }
+
+  /* ---- Hero ---- */
+  .hero{padding:74px 0 0; text-align:center}
+  .pill{display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--text2);
+        padding:6px 13px; border-radius:26px; background:var(--glass); border:1px solid var(--brd); margin-bottom:22px}
+  .pill i{width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;font-style:normal}
+  h1{font-size:clamp(38px,6.4vw,64px); font-weight:300; letter-spacing:-.03em; line-height:1.06; margin:0 0 18px}
+  .lede{font-size:clamp(16px,2.1vw,19.5px); font-weight:300; color:var(--text2);
+        max-width:660px; margin:0 auto 30px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
+  .btn{display:inline-flex; align-items:center; gap:10px; text-decoration:none; font-size:14.5px; font-weight:500;
+       height:52px; padding:0 30px; border-radius:26px; border:1px solid transparent; transition:filter .12s ease,background .12s ease}
+  .btn-primary{background:linear-gradient(150deg,var(--accent),var(--accent2)); color:var(--accentInk); box-shadow:var(--glow)}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-ghost{background:var(--glass); border-color:var(--brd2); color:var(--text)}
+  .btn-ghost:hover{background:var(--glass2)}
+  .btn svg{width:17px;height:17px;fill:currentColor}
+  .req{font-size:12px; color:var(--text3)}
+
+  /* ---- Screenshots ---- */
+  .shot{border-radius:14px; border:1px solid var(--brd); box-shadow:var(--shadowShot);
+        display:block; width:100%; height:auto; background:var(--glass)}
+  .hero-shot{margin:44px auto 0; max-width:1060px}
+  figure{margin:0}
+  figcaption{font-size:12.5px; color:var(--text3); text-align:center; margin-top:12px}
+
+  /* ---- Abschnitte ---- */
+  section{padding:78px 0}
+  .eyebrow{font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+           color:var(--text3); margin:0 0 12px}
+  h2{font-size:clamp(26px,3.6vw,36px); font-weight:300; letter-spacing:-.03em; margin:0 0 14px; line-height:1.15}
+  h3{font-size:16px; font-weight:560; margin:0 0 7px; letter-spacing:-.01em}
+  .sub{color:var(--text2); font-size:15.5px; font-weight:300; max-width:640px; margin:0 0 38px}
+  .center{text-align:center} .center .sub{margin-left:auto;margin-right:auto}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:16px}
+  .card{background:var(--glass); border:1px solid var(--brd); border-radius:20px; padding:24px 22px;
+        box-shadow:var(--shadowCard); backdrop-filter:blur(20px)}
+  .card p{margin:0; color:var(--text2); font-size:13.8px; font-weight:300}
+  .tile{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:15px;
+        box-shadow:0 3px 10px rgba(0,0,0,.22)}
+  .tile svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .t1{background:linear-gradient(150deg,#B45CFF,#7B3BE8)} .t2{background:linear-gradient(150deg,#4FD8E8,#2E3FA8)}
+  .t3{background:linear-gradient(150deg,#56E39F,#177A5A)} .t4{background:linear-gradient(150deg,#FFC24F,#8A6516)}
+  .t5{background:linear-gradient(150deg,#FF6BC1,#6E1E8E)} .t6{background:linear-gradient(150deg,#FFB347,#B8531A)}
+  kbd{font:inherit; font-size:11.5px; font-weight:600; padding:1.5px 6px; border-radius:6px;
+      background:var(--glass3); border:1px solid var(--brd); color:var(--text2); white-space:nowrap}
+
+  .gallery{display:grid; gap:56px}
+  .g-row{display:grid; grid-template-columns:1fr; gap:26px; align-items:center}
+  @media(min-width:900px){
+    .g-row{grid-template-columns:1fr 1.32fr; gap:44px}
+    .g-row.flip .g-txt{order:2}
+  }
+  .g-txt h3{font-size:21px; font-weight:400; letter-spacing:-.02em; margin-bottom:10px}
+  .g-txt p{color:var(--text2); font-size:14.5px; font-weight:300; margin:0}
+
+  .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:26px}
+  .step{background:var(--glass); border:1px solid var(--brd); border-radius:18px; padding:20px}
+  .step b{display:block; font-size:28px; font-weight:300; letter-spacing:-.03em; color:var(--accent); margin-bottom:6px}
+  .step p{margin:0; color:var(--text2); font-size:13.5px; font-weight:300}
+  pre{background:var(--glass2); border:1px solid var(--brd); border-radius:16px; padding:18px 20px;
+      overflow-x:auto; margin:0; box-shadow:var(--shadowCard)}
+  code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace; font-size:12.8px; line-height:1.85; color:var(--text2)}
+  code .c{color:var(--text3)} code .k{color:var(--cyan)}
+
+  .note{background:var(--glass); border:1px solid var(--brd); border-left:3px solid var(--accent);
+        border-radius:14px; padding:18px 22px; color:var(--text2); font-size:13.8px; font-weight:300}
+  .note strong{color:var(--text); font-weight:560}
+
+  footer{border-top:1px solid var(--brd); padding:44px 0 60px; margin-top:20px}
+  .f-grid{display:flex; flex-wrap:wrap; gap:26px; justify-content:space-between; align-items:flex-start}
+  footer p{margin:0 0 8px; font-size:12.8px; color:var(--text3); font-weight:300; max-width:560px}
+  footer a{color:var(--text2)}
+  footer a:hover{color:var(--text)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M18 16h11a5 5 0 0 1 5 5v27a4 4 0 0 0-4-4H18zM46 16H35a5 5 0 0 0-5 5v27a4 4 0 0 1 4-4h12z" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/></svg>
+      </span>
+      LibraryCompass
+    </a>
+
+    <div class="ctl" role="group" aria-label="Sprache / Language">
+      <button type="button" data-lang-btn="de" aria-pressed="true">DE</button>
+      <button type="button" data-lang-btn="en" aria-pressed="false">EN</button>
+    </div>
+
+    <div class="ctl" role="group" aria-label="Erscheinungsbild / Appearance">
+      <button type="button" data-theme-btn="light" aria-pressed="false" title="Hell / Light">☀</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="true" title="Dunkel / Dark">☾</button>
+    </div>
+
+    <a class="gh" href="https://github.com/JoeMartinBTC/LibraryCompass" rel="noopener">
+      <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+      <span data-i18n="nav.gh">Quellcode</span>
+    </a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <div class="wrap hero">
+    <span class="pill"><i></i><span data-i18n="hero.pill">Hobbyprojekt · quelloffen · macOS</span></span>
+    <h1 data-i18n="hero.h1">Die eigene Bücherwand,<br>endlich sortiert.</h1>
+    <p class="lede" data-i18n="hero.lede">LibraryCompass katalogisiert physische Bücher: Barcode scannen, Titel und Cover aus freien Quellen holen, eigene Bewertung und Notiz dazu. Bewusst wenige Funktionen — ein aufgeräumter Nachfolger für Delicious Library.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/JoeMartinBTC/LibraryCompass" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+        <span data-i18n="hero.cta1">Auf GitHub ansehen</span>
+      </a>
+      <a class="btn btn-ghost" href="#build"><span data-i18n="hero.cta2">Selbst bauen</span></a>
+    </div>
+    <p class="req" data-i18n="hero.req">macOS 14 oder neuer · Apple Silicon &amp; Intel · MIT-Lizenz</p>
+
+    <figure class="hero-shot">
+      <img class="shot" data-shot="grid" src="img/grid-dark.webp" width="1800" height="1534"
+           alt="LibraryCompass: Cover-Raster einer Bibliothek mit 115 Büchern" loading="eager">
+      <figcaption data-i18n="hero.cap">Die Screenshots zeigen eine echte, gewachsene Bibliothek — 115 Bücher, eigene Bewertungen, eigene Notizen.</figcaption>
+    </figure>
+  </div>
+
+  <!-- WARUM -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="why.eyebrow">Warum</p>
+    <h2 data-i18n="why.h2">Aus einem Regalproblem entstanden.</h2>
+    <p class="sub" data-i18n="why.sub">Delicious Library war jahrelang die Antwort auf die Frage „habe ich das Buch schon?" — und wurde dann eingestellt. Der Bestand lag als XML-Export auf der Platte. LibraryCompass ist die Antwort darauf: klein, lokal, ohne Konto, mit genau den zehn Feldern, die wirklich gebraucht werden.</p>
+    <div class="note">
+      <strong data-i18n="why.noteT">Kein Produkt, kein Geschäftsmodell.</strong>
+      <span data-i18n="why.noteB"> Das hier ist ein privates Wochenendprojekt, das öffentlich liegt, weil es vielleicht jemandem sonst nützt. Keine Registrierung, keine Analyse, kein Server — die Bibliothek bleibt auf dem eigenen Mac.</span>
+    </div>
+  </section>
+
+  <!-- FUNKTIONEN -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="feat.eyebrow">Funktionen</p>
+    <h2 data-i18n="feat.h2">Wenig, aber das richtig.</h2>
+    <p class="sub" data-i18n="feat.sub">Jede Funktion existiert, weil sie beim Katalogisieren von rund 1.800 Büchern gefehlt hat.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="tile t1"><svg viewBox="0 0 24 24"><path d="M4 6h2v12H4zM8 6h1v12H8zM11 6h2v12h-2zM15 6h1v12h-1zM18 6h2v12h-2z"/></svg></div>
+        <h3 data-i18n="f1.h">Barcode scannen</h3>
+        <p><span data-i18n="f1.p1">Kamera auf den EAN-13-Code halten, fertig. Die Prüfziffer wird validiert, bevor irgendetwas nachgeladen wird. Das iPhone lässt sich als Continuity-Kamera nutzen und wird wegen des besseren Autofokus bevorzugt.</span> <kbd>⌘K</kbd></p>
+      </div>
+      <div class="card">
+        <div class="tile t2"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L20 20"/></svg></div>
+        <h3 data-i18n="f2.h">Metadaten aus freien Quellen</h3>
+        <p><span data-i18n="f2.p1">Titel, Autor und Jahr kommen der Reihe nach von Open Library, der Deutschen Nationalbibliothek und Google Books. Die DNB ist dabei, weil deutsche Ausgaben in den internationalen Quellen oft fehlen.</span> <kbd>⌘N</kbd></p>
+      </div>
+      <div class="card">
+        <div class="tile t3"><svg viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M5 19h14"/></svg></div>
+        <h3 data-i18n="f3.h">Import aus Delicious Library</h3>
+        <p data-i18n="f3.p">Liest den plist-XML-Export ein, gleicht über die ISBN ab und läuft deshalb beliebig oft ohne Dubletten. Eigene Bewertungen und Notizen bleiben erhalten; Katalog-Ballast im Titel wird entfernt.</p>
+      </div>
+      <div class="card">
+        <div class="tile t4"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z"/></svg></div>
+        <h3 data-i18n="f4.h">Eigene Bewertung, Notiz, Lesedatum</h3>
+        <p data-i18n="f4.p">Fünf Sterne, ein Freitextfeld und ein Datum — mehr nicht. Jede Eingabe wird sofort gespeichert, es gibt keinen Speichern-Knopf. Statistikkarten zeigen Leseanteil, Notendurchschnitt und die zuletzt gelesenen Titel.</p>
+      </div>
+      <div class="card">
+        <div class="tile t5"><svg viewBox="0 0 24 24"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v5h5M8.5 13h7M8.5 16.5h5"/></svg></div>
+        <h3 data-i18n="f5.h">CSV-Export</h3>
+        <p><span data-i18n="f5.p1">Alle zehn Felder als RFC-4180-CSV, mit Byte-Order-Mark, damit Excel die Umlaute richtig anzeigt. Die eigenen Daten bleiben jederzeit mitnehmbar.</span> <kbd>⌘E</kbd></p>
+      </div>
+      <div class="card">
+        <div class="tile t6"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9 4.5v15"/></svg></div>
+        <h3 data-i18n="f6.h">Raster oder Liste, hell oder dunkel</h3>
+        <p data-i18n="f6.p">Suche, Filter und Sortierung greifen bei rund 1.800 Titeln ohne spürbare Verzögerung — keine Animation steht zwischen Eingabe und Ergebnis. Coverzoom stufenlos, Erscheinungsbild folgt dem System oder wird von Hand gesetzt.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALERIE -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="shots.eyebrow">Ansichten</p>
+    <h2 data-i18n="shots.h2">So sieht es aus.</h2>
+    <p class="sub" data-i18n="shots.sub">Die Oberfläche ist deutsch. Umschalten des Erscheinungsbilds oben rechts wechselt auch diese Bilder.</p>
+
+    <div class="gallery">
+      <div class="g-row">
+        <div class="g-txt">
+          <h3 data-i18n="s1.h">Listenansicht</h3>
+          <p data-i18n="s1.p">Jede Zeile mit Cover-Vorschau, Jahr, Bewertung und Lesedatum. Sortierbar nach Titel, Autor, Jahr, Bewertung oder zuletzt gelesen.</p>
+        </div>
+        <figure><img class="shot" data-shot="list" src="img/list-dark.webp" width="1800" height="1301" loading="lazy" alt="Listenansicht mit Cover-Vorschau je Zeile"></figure>
+      </div>
+
+      <div class="g-row flip">
+        <div class="g-txt">
+          <h3 data-i18n="s2.h">Detailbereich</h3>
+          <p data-i18n="s2.p">Rechts das gewählte Buch: großes Cover, Eckdaten als Chips, darunter Sterne, Lesedatum und Kommentarfeld. Alles schreibt sofort auf das Buch.</p>
+        </div>
+        <figure><img class="shot" data-shot="detail" src="img/detail-light.webp" width="1800" height="1154" loading="lazy" alt="Detailbereich mit Bewertung, Lesedatum und Kommentar"></figure>
+      </div>
+
+      <div class="g-row">
+        <div class="g-txt">
+          <h3 data-i18n="s3.h">Buch per ISBN</h3>
+          <p data-i18n="s3.p">Wenn kein Barcode zur Hand ist: ISBN eintippen, Titel, Autor und Cover werden übernommen und das neue Buch direkt ausgewählt.</p>
+        </div>
+        <figure><img class="shot" data-shot="isbn" src="img/isbn-light.webp" width="1800" height="1260" loading="lazy" alt="Dialog zum Hinzufügen eines Buchs per ISBN"></figure>
+      </div>
+
+      <div class="g-row flip">
+        <div class="g-txt">
+          <h3 data-i18n="s4.h">Zoom, stufenlos</h3>
+          <p data-i18n="s4.p">Der Regler in der Werkzeugleiste skaliert die Cover von 70 bis 170 Prozent. Ganz klein passt die halbe Bibliothek auf den Schirm, ganz groß liest sich jeder Buchrücken.</p>
+        </div>
+        <figure><img class="shot" data-shot="zoom" src="img/zoom-dark.webp" width="1800" height="1541" loading="lazy" alt="Cover-Raster bei hoher Zoomstufe"></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- BAUEN -->
+  <section class="wrap" id="build">
+    <p class="eyebrow" data-i18n="build.eyebrow">Installation</p>
+    <h2 data-i18n="build.h2">Selbst bauen, in drei Schritten.</h2>
+    <p class="sub" data-i18n="build.sub">Es gibt bewusst keine fertige Programmdatei zum Herunterladen: ohne bezahltes Apple-Entwicklerprogramm ließe sie sich nicht notarisieren, und eine nicht notarisierte Datei aus dem Netz sollte niemand blind öffnen. Der Quellcode ist vollständig — bauen dauert unter einer Minute.</p>
+
+    <div class="steps">
+      <div class="step"><b>1</b><p data-i18n="build.s1">Xcode-Befehlszeilenwerkzeuge installieren, falls noch nicht vorhanden.</p></div>
+      <div class="step"><b>2</b><p data-i18n="build.s2">Projekt klonen und das Programmpaket bauen.</p></div>
+      <div class="step"><b>3</b><p data-i18n="build.s3">Nach „Programme" installieren und starten.</p></div>
+    </div>
+
+<pre><code><span class="c"># <span data-i18n="build.c1">Quellcode holen</span></span>
+<span class="k">git</span> clone https://github.com/JoeMartinBTC/LibraryCompass.git
+<span class="k">cd</span> LibraryCompass
+
+<span class="c"># <span data-i18n="build.c2">bauen und installieren</span></span>
+./make-app.sh
+./install-app.sh
+
+<span class="c"># <span data-i18n="build.c3">optional: Testlauf</span></span>
+<span class="k">swift</span> test</code></pre>
+
+    <p class="sub" style="margin:22px 0 0" data-i18n="build.after">Die App wird mit einer Ad-hoc-Signatur versehen. Beim ersten Start nach einer Neuinstallation fragt macOS erneut nach der Kameraerlaubnis — das ist erwartet und in der Projektdokumentation beschrieben.</p>
+  </section>
+
+  <!-- TECHNIK -->
+  <section class="wrap center">
+    <p class="eyebrow" data-i18n="tech.eyebrow">Unter der Haube</p>
+    <h2 data-i18n="tech.h2">Klein gehalten, ordentlich gebaut.</h2>
+    <p class="sub" data-i18n="tech.sub">SwiftUI und SwiftData, kein Netzwerkdienst, keine Fremdbibliothek. Der Kern ist als eigenes Paket getrennt und testgetrieben entstanden.</p>
+    <div class="cards">
+      <div class="card"><h3 data-i18n="t1.h">159 Tests</h3><p data-i18n="t1.p">Import, Duplikaterkennung, Suche, Statistik und die Metadatenquellen sind abgedeckt — inklusive echter Netzabfragen.</p></div>
+      <div class="card"><h3 data-i18n="t2.h">Alles lokal</h3><p data-i18n="t2.p">Eine SwiftData-Datei im Programmordner des Benutzers. Kein Konto, keine Synchronisierung, keine Telemetrie.</p></div>
+      <div class="card"><h3 data-i18n="t3.h">MIT-Lizenz</h3><p data-i18n="t3.p">Benutzen, verändern, weitergeben — auch kommerziell. Ohne Gewährleistung, wie bei MIT üblich.</p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap f-grid">
+    <div>
+      <p><strong style="color:var(--text2)">LibraryCompass</strong> — <span data-i18n="foot.p1">privates Hobbyprojekt, quelloffen unter der MIT-Lizenz. Keine kommerzielle Absicht, kein Support-Versprechen.</span></p>
+      <p data-i18n="foot.p2">Buchdaten stammen von Open Library, der Deutschen Nationalbibliothek und Google Books. Nicht verbunden mit Delicious Library oder deren Herausgeber.</p>
+      <p data-i18n="foot.p3">Die Screenshots zeigen die Bibliothek des Autors. Buchcover und Titel sind Eigentum der jeweiligen Verlage und stehen hier allein zur Veranschaulichung der Software.</p>
+    </div>
+    <div>
+      <p><a href="https://github.com/JoeMartinBTC/LibraryCompass" rel="noopener" data-i18n="foot.l1">Quellcode auf GitHub</a></p>
+      <p><a href="https://github.com/JoeMartinBTC/LibraryCompass/issues" rel="noopener" data-i18n="foot.l2">Fehler melden</a></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Übersetzungen ---------- */
+  var STRINGS = {
+    en: {
+      "nav.gh": "Source",
+      "hero.pill": "Hobby project · open source · macOS",
+      "hero.h1": "Your bookshelf,<br>finally in order.",
+      "hero.lede": "LibraryCompass catalogues physical books: scan the barcode, pull title and cover from open sources, add your own rating and note. Deliberately few features — a tidied-up successor to Delicious Library.",
+      "hero.cta1": "View on GitHub",
+      "hero.cta2": "Build it yourself",
+      "hero.req": "macOS 14 or later · Apple silicon &amp; Intel · MIT licence",
+      "hero.cap": "The screenshots show a real, grown library — 115 books, real ratings, real notes.",
+
+      "why.eyebrow": "Why",
+      "why.h2": "Born from a shelf problem.",
+      "why.sub": "For years Delicious Library answered the question “do I already own this?” — then it was discontinued, leaving an XML export sitting on disk. LibraryCompass is the answer to that: small, local, no account, with exactly the ten fields that actually get used.",
+      "why.noteT": "Not a product, no business model.",
+      "why.noteB": " This is a private weekend project that happens to be public, in case it is useful to someone else. No sign-up, no analytics, no server — your library stays on your own Mac.",
+
+      "feat.eyebrow": "Features",
+      "feat.h2": "Few things, done properly.",
+      "feat.sub": "Every feature exists because it was missing while cataloguing roughly 1,800 books.",
+      "f1.h": "Scan a barcode",
+      "f1.p1": "Point the camera at the EAN-13 code and you are done. The check digit is validated before anything is fetched. An iPhone can serve as a Continuity Camera and is preferred for its better autofocus.",
+      "f2.h": "Metadata from open sources",
+      "f2.p1": "Title, author and year come from Open Library, then the German National Library, then Google Books. The DNB is in the chain because German editions are often missing from the international sources.",
+      "f3.h": "Import from Delicious Library",
+      "f3.p": "Reads the plist XML export and matches on ISBN, so it can run any number of times without creating duplicates. Your own ratings and notes survive; catalogue clutter is stripped from titles.",
+      "f4.h": "Your rating, note and read date",
+      "f4.p": "Five stars, one free-text field and a date — nothing more. Every edit saves immediately; there is no save button. Stat cards show the read share, the average score and what you finished most recently.",
+      "f5.h": "CSV export",
+      "f5.p1": "All ten fields as RFC 4180 CSV with a byte order mark, so Excel renders accented characters correctly. Your data stays portable at all times.",
+      "f6.h": "Grid or list, light or dark",
+      "f6.p": "Search, filters and sorting stay responsive across roughly 1,800 titles — no animation sits between input and result. Cover zoom is continuous; appearance follows the system or can be set by hand.",
+
+      "shots.eyebrow": "Views",
+      "shots.h2": "What it looks like.",
+      "shots.sub": "The interface is in German. Switching the appearance at the top right switches these images too.",
+      "s1.h": "List view",
+      "s1.p": "Every row carries a cover preview, year, rating and read date. Sort by title, author, year, rating or most recently read.",
+      "s2.h": "Detail pane",
+      "s2.p": "The selected book on the right: large cover, key facts as chips, then stars, read date and comment field. Everything writes straight to the book.",
+      "s3.h": "Add by ISBN",
+      "s3.p": "When there is no barcode to hand: type the ISBN, and title, author and cover are filled in with the new book selected right away.",
+      "s4.h": "Zoom, continuous",
+      "s4.p": "The slider in the toolbar scales covers from 70 to 170 percent. All the way down, half the library fits on screen; all the way up, every spine is legible.",
+
+      "build.eyebrow": "Installation",
+      "build.h2": "Build it yourself, in three steps.",
+      "build.sub": "There is deliberately no ready-made download: without a paid Apple developer programme it could not be notarised, and nobody should open an un-notarised binary from the internet on trust. The source is complete — building takes under a minute.",
+      "build.s1": "Install the Xcode command line tools, if you do not have them yet.",
+      "build.s2": "Clone the project and build the application bundle.",
+      "build.s3": "Install into Applications and launch.",
+      "build.c1": "get the source",
+      "build.c2": "build and install",
+      "build.c3": "optional: run the tests",
+      "build.after": "The app is given an ad-hoc signature. On first launch after a reinstall macOS will ask for camera permission again — that is expected and documented in the project.",
+
+      "tech.eyebrow": "Under the hood",
+      "tech.h2": "Kept small, built properly.",
+      "tech.sub": "SwiftUI and SwiftData, no network service, no third-party library. The core is a separate package and was written test-first.",
+      "t1.h": "159 tests",
+      "t1.p": "Import, duplicate detection, search, statistics and the metadata sources are covered — including real network calls.",
+      "t2.h": "Entirely local",
+      "t2.p": "One SwiftData file in the user’s application support folder. No account, no sync, no telemetry.",
+      "t3.h": "MIT licence",
+      "t3.p": "Use it, change it, pass it on — commercially too. Without warranty, as MIT goes.",
+
+      "foot.p1": "a private hobby project, open source under the MIT licence. No commercial intent, no promise of support.",
+      "foot.p2": "Book data comes from Open Library, the German National Library and Google Books. Not affiliated with Delicious Library or its publisher.",
+      "foot.p3": "The screenshots show the author’s own library. Book covers and titles belong to their respective publishers and appear here purely to illustrate the software.",
+      "foot.l1": "Source on GitHub",
+      "foot.l2": "Report an issue"
+    }
+  };
+
+  var TITLES = {
+    de: "LibraryCompass — Mac-App für die eigene Bücherwand",
+    en: "LibraryCompass — a Mac app for your own bookshelf"
+  };
+
+  var nodes = document.querySelectorAll("[data-i18n]");
+  var german = {};
+  nodes.forEach(function (el) { german[el.getAttribute("data-i18n")] = el.innerHTML; });
+
+  function applyLang(lang) {
+    var table = lang === "en" ? STRINGS.en : german;
+    nodes.forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      var value = lang === "en" ? table[key] : german[key];
+      if (value !== undefined) { el.innerHTML = value; }
+    });
+    document.documentElement.lang = lang;
+    document.title = TITLES[lang];
+    document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang-btn") === lang));
+    });
+    try { localStorage.setItem("lc-lang", lang); } catch (e) {}
+  }
+
+  /* ---------- Erscheinungsbild ---------- */
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    // Screenshots mitschalten, soweit eine helle Fassung vorliegt.
+    // Nur Ansichten mit beiden Fassungen wechseln mit; die übrigen liegen
+    // ausschließlich hell vor und bleiben, wie sie sind.
+    var BOTH = { grid: 1, list: 1, zoom: 1 };
+    document.querySelectorAll("[data-shot]").forEach(function (img) {
+      var name = img.getAttribute("data-shot");
+      if (!BOTH[name]) { return; }
+      img.src = "img/" + name + "-" + theme + ".webp";
+    });
+    document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-theme-btn") === theme));
+    });
+    try { localStorage.setItem("lc-theme", theme); } catch (e) {}
+  }
+
+  document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyLang(b.getAttribute("data-lang-btn")); });
+  });
+  document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme-btn")); });
+  });
+
+  /* ---------- Startzustand ---------- */
+  var savedTheme, savedLang;
+  try { savedTheme = localStorage.getItem("lc-theme"); savedLang = localStorage.getItem("lc-lang"); } catch (e) {}
+
+  // Direktverweise wie ?lang=en&theme=light haben Vorrang (teilbar, testbar).
+  var params = new URLSearchParams(window.location.search);
+  var pLang = params.get("lang"), pTheme = params.get("theme");
+  if (pLang === "de" || pLang === "en") { savedLang = pLang; }
+  if (pTheme === "light" || pTheme === "dark") { savedTheme = pTheme; }
+
+  if (!savedTheme) {
+    savedTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  if (!savedLang) {
+    savedLang = (navigator.language || "de").toLowerCase().indexOf("de") === 0 ? "de" : "en";
+  }
+  applyTheme(savedTheme);
+  applyLang(savedLang);
+
+  // Systemwechsel nur folgen, solange nichts von Hand gewählt wurde.
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function (e) {
+    var manual;
+    try { manual = localStorage.getItem("lc-theme"); } catch (err) {}
+    if (!manual) { applyTheme(e.matches ? "light" : "dark"); }
+  });
+})();
+</script>
+</body>
+</html>
