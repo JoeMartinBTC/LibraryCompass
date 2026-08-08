@@ -16,7 +16,7 @@ public enum LibraryFilter: String, CaseIterable, Sendable {
 
 /// Sortier-Optionen der Toolbar, Beschriftungen exakt wie in README §5.2.
 public enum LibrarySort: String, CaseIterable, Sendable {
-    case titel, autor, jahr, bewertung, zuletztGelesen
+    case titel, autor, jahr, bewertung, zuletztGelesen, ohneCover
 
     public var title: String {
         switch self {
@@ -25,6 +25,7 @@ public enum LibrarySort: String, CaseIterable, Sendable {
         case .jahr: "Jahr, neueste zuerst"
         case .bewertung: "Bewertung, beste zuerst"
         case .zuletztGelesen: "Zuletzt gelesen"
+        case .ohneCover: "Ohne Cover zuerst"
         }
     }
 }
@@ -117,6 +118,14 @@ public struct BookQuery: Sendable, Equatable {
                 let da = a.readDate?.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
                 let db = b.readDate?.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
                 if da != db { return da > db }
+                return Self.compare(a.title, b.title) == .orderedAscending
+            }
+        case .ohneCover:
+            // Die bebilderten Bücher verschwinden nicht, sie rücken nach hinten — so
+            // lassen sich die Lücken am Stück durchsehen, ohne den Bestand zu filtern.
+            return rows.sorted { a, b in
+                let ma = (a.coverPath ?? "").isEmpty, mb = (b.coverPath ?? "").isEmpty
+                if ma != mb { return ma }
                 return Self.compare(a.title, b.title) == .orderedAscending
             }
         }

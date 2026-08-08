@@ -94,6 +94,6 @@ final class QueryTests: XCTestCase {
                        ["Alle Bücher", "Gelesen", "Ungelesen", "Bewertet"])
         XCTAssertEqual(LibrarySort.allCases.map(\.title),
                        ["Titel A–Z", "Autor A–Z", "Jahr, neueste zuerst",
-                        "Bewertung, beste zuerst", "Zuletzt gelesen"])
+                        "Bewertung, beste zuerst", "Zuletzt gelesen", "Ohne Cover zuerst"])
     }
 }
