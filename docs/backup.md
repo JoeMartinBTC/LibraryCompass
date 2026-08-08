@@ -50,9 +50,34 @@ sqlite3 Backups/Library-YYYYMMDD-HHMMSS.store "select count(*) from ZBOOK;"
 The CSV is the fallback when the database itself is suspect: it opens in any spreadsheet
 and carries every field, so nothing is locked inside an app-specific format.
 
+## Offsite copy
+
+The same run also builds an **AES-256 encrypted disk image** holding that run's database
+and CSV, and files it in iCloud Drive as
+`Backups/LibraryCompassBackup-YYYYMMDD-HHMMSS.dmg`, newest 14 kept.
+`LibraryCompassBackup-LATEST.txt` names the current one.
+
+Encrypted because the library carries personal reading notes — places, dates, verdicts.
+That is not something to put in a cloud in the clear. The password comes from the keychain
+service `brain-backup`, shared with the other vault backups so there is one recovery
+password to remember rather than several to lose.
+
+Nothing reaches iCloud unverified. The image must report as encrypted, mount, and contain
+a database with the **same book count** as the local snapshot. If any check fails the run
+says so and leaves the existing offsite copies untouched — a broken backup must never
+displace a good one.
+
+One trap worth knowing: the count is taken from a copy pulled out of the mounted image,
+not from the file inside it. SQLite refuses to open a WAL database on a read-only volume,
+so counting in place returns zero and would reject every backup instead of only the bad
+ones.
+
+To restore from it: open the `.dmg` (Finder, double-click), enter the `brain-backup`
+password, and copy the `.store` out — then follow the restore steps above.
+
 ## What this does *not* cover
 
-The backups sit on the same disk as the library. They protect against accidental
-deletion, a bad maintenance run, or a corrupted store — not against losing the disk.
-Time Machine covers that, and the folder is included in it; local APFS snapshots exist
-as well. For anything irreplaceable, keep an occasional copy of the CSV somewhere else.
+Losing the Mac and the iCloud account at once. Local snapshots protect against mistakes,
+the encrypted iCloud copy against losing the disk. Time Machine covers the folder as well
+(it is `[Included]`), though in this setup its external disks have failed before, so the
+iCloud copy is the one to rely on.
