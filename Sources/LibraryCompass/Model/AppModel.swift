@@ -158,7 +158,9 @@ final class AppModel {
             return existing
         }
 
-        let book = Book(isbn: normalized, title: "", author: "", addedDate: Date())
+        // Erfasst heißt gelesen — sonst fehlt dem Buch jedes Datum, unter dem man es
+        // wiederfindet (Nutzerregel 2026-08-08).
+        let book = NewBook.make(isbn: normalized)
         context.insert(book)
         try? context.save()
         reload()
