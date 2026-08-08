@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Cover liegen als Dateien in Application Support; im Modell steht nur der Dateiname.
 public actor CoverCache {
@@ -9,6 +10,10 @@ public actor CoverCache {
 
     private let client: HTTPClient
     private let directoryURL: URL?
+
+    /// Prüfsumme eines Bildes → Dateistamm, dem es gehört.
+    private var knownImages: [String: String] = [:]
+    private var didIndexDirectory = false
 
     public init(client: HTTPClient = URLSessionHTTPClient(), directory: URL? = nil) {
         self.client = client
@@ -40,10 +45,38 @@ public actor CoverCache {
         let (data, status) = try await client.get(url)
         guard status == 200, Self.isUsableImage(data) else { return nil }
 
+        // Zwei verschiedene Bücher mit bitgleichem Cover sind kein Zufall, sondern ein
+        // Verlagsplatzhalter. Am echten Bestand: „Leadership by the Book" und „Swoosh"
+        // trugen beide das HarperCollins-Bild „COVER TO BE REVEALED" — 15.419 Byte, also
+        // weit über der Mindestgröße. Ein falsches Cover wiegt schwerer als ein fehlendes.
+        let digest = Self.digest(of: data)
+        if let owner = try await ownerOfImage(digest), owner != stem { return nil }
+
         let name = fileName(for: stem, url: url)
         let target = try directory().appendingPathComponent(name)
         try data.write(to: target, options: .atomic)
+        knownImages[digest] = stem
         return name
+    }
+
+    /// Wem gehört dieses Bild bereits? Der Index wird beim ersten Bedarf aus dem
+    /// Cache-Ordner aufgebaut, damit der Wächter auch Bilder früherer Läufe kennt.
+    private func ownerOfImage(_ digest: String) throws -> String? {
+        if !didIndexDirectory {
+            didIndexDirectory = true
+            let base = try directory()
+            let files = (try? FileManager.default.contentsOfDirectory(at: base,
+                                                                     includingPropertiesForKeys: nil)) ?? []
+            for file in files {
+                guard let data = try? Data(contentsOf: file) else { continue }
+                knownImages[Self.digest(of: data)] = file.deletingPathExtension().lastPathComponent
+            }
+        }
+        return knownImages[digest]
+    }
+
+    private static func digest(of data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     public func fileURL(for name: String) -> URL? {

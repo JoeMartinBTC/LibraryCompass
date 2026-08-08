@@ -83,7 +83,11 @@ final class CoverCollisionTests: XCTestCase {
 }
 
 /// Liefert zu jeder Titelsuche einen Treffer mit passendem Autor und ein Bild.
+/// Die Bilder unterscheiden sich je Abruf — echte Cover tun das auch, und bitgleiche
+/// Bilder verwirft der Cache inzwischen als Verlagsplatzhalter.
 private actor AnyCoverClient: HTTPClient {
+    private var served: UInt8 = 0
+
     func get(_ url: URL) async throws -> (Data, Int) {
         let address = url.absoluteString
         if address.contains("openlibrary.org/search.json") {
@@ -91,7 +95,8 @@ private actor AnyCoverClient: HTTPClient {
             return (Data(json.utf8), 200)
         }
         if address.contains("covers.openlibrary.org") {
-            return (Data(repeating: 7, count: 14_324), 200)
+            served += 1
+            return (Data(repeating: served, count: 14_324), 200)
         }
         return (Data(), 404)
     }
