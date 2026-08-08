@@ -28,21 +28,23 @@ Out of scope for now: iPhone app, sync.
 ```bash
 ./make-app.sh      # build the .app bundle (SwiftPM release + ad-hoc signing)
 ./install-app.sh   # install to /Applications (resets the TCC camera grant — see docs/scanner.md)
-swift test         # 169 tests, including live network checks
+swift test         # 182 tests, including live network checks
 ./ui-test.sh       # XCUI smoke tests via xcodegen project
 ```
 
 Headless maintenance (app must be closed — same SwiftData store):
 
 ```bash
+./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-isbns         # look up missing ISBNs (DNB)
 ./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-covers        # backfill covers
 ./LibraryCompass.app/Contents/MacOS/LibraryCompass --mark-read           # read date := added date
 ./LibraryCompass.app/Contents/MacOS/LibraryCompass --export ~/books.csv  # CSV export
 ```
 
-`--fetch-covers` only visits books that have no cover yet, so it resumes on re-run.
-It exits **1** when it did not get through the whole list — check the code, don't
-trust the last printed line. Details: [docs/covers.md](docs/covers.md).
+Run `--fetch-isbns` before `--fetch-covers`: without an ISBN a book cannot reach the
+edition-exact cover source. Both only visit books with the respective gap, so they resume
+on re-run, and both exit **1** when they did not get through the whole list — check the
+code, don't trust the last printed line. Details: [docs/covers.md](docs/covers.md).
 
 ## Metadata sources
 
@@ -65,7 +67,7 @@ The key lives outside the repo, next to the library database.
 |---|---|
 | `Sources/LibraryCompassCore/` | model, store, import/export, query, stats, lookup, cover cache, scan/title logic |
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
-| `Tests/LibraryCompassTests/` | 169 tests, including live network checks |
+| `Tests/LibraryCompassTests/` | 182 tests, including live network checks |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
 | `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, Google Books key setup |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |

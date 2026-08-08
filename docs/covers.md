@@ -138,14 +138,38 @@ Two further checks worth running after a large import: every `coverPath` resolve
 file of at least 1,500 bytes, and every book *with* an ISBN carries an ISBN-derived
 stem. Both should come back zero.
 
+## Filling in missing ISBNs first
+
+A book with no ISBN cannot reach the only edition-exact cover source, so the largest
+remaining gap is a *data* gap rather than an image one. `--fetch-isbns` closes it where
+the German National Library can vouch for the book:
+
+```bash
+./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-isbns   # then --fetch-covers
+```
+
+It searches `TIT=<title> and PER=<surname>`, and adopts an ISBN **only** from a record
+whose `[Verfasser]` matches the stored author. Everything else is rejected: a translator
+or narrator credit is not proof of authorship, and a search for a title regularly returns
+the audiobook box alongside the novel. A wrong ISBN is worse than none — it corrupts the
+data *and* pulls the wrong cover — so the check digit is validated too, and `urn:nbn:…`
+identifiers are ignored.
+
+Only the DNB is queried here. Google Books runs out of its daily quota after a large
+backfill (`429 … Queries per day`), and Open Library covers German editions poorly.
+
+This is a separate pass from the cover backfill on purpose. A missing ISBN and a missing
+picture are different gaps, each worth repeating on its own — the same reason metadata
+hits and cover hits were decoupled earlier.
+
 ## What is legitimately missing
 
 Not every gap is a defect.
 
 - **979-prefix ISBNs** have no ISBN-10 equivalent, so the edition-exact Amazon endpoint
   cannot be queried at all.
-- **Books without ISBN and without author** cannot use the title search, because the
-  author match is what keeps it from attaching a wrong edition. Dropping that guard
+- **Books without an author** can use neither the ISBN lookup nor the title search, because
+  the author match is what keeps both from attaching a wrong edition. Dropping that guard
   once produced an English cover for a German edition.
 - Some older German editions simply are not carried by any free source.
 

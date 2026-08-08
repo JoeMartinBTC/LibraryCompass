@@ -318,6 +318,87 @@ public enum DNB {
         return components.url!
     }
 
+    /// Suche über Titel und Person — für die ~137 Bestandsbücher, die gar keine ISBN
+    /// führen. Ohne ISBN bleibt die ausgabegenaue Coverquelle (Amazon über ISBN-10)
+    /// unerreichbar.
+    public static func searchURL(title: String, author: String) -> URL {
+        var components = URLComponents(string: "https://services.dnb.de/sru/dnb")!
+        components.queryItems = [
+            URLQueryItem(name: "version", value: "1.1"),
+            URLQueryItem(name: "operation", value: "searchRetrieve"),
+            URLQueryItem(name: "query", value: "TIT=\(SearchTitle.simplify(title)) and PER=\(surname(of: author))"),
+            URLQueryItem(name: "recordSchema", value: "oai_dc"),
+            URLQueryItem(name: "maximumRecords", value: "10")
+        ]
+        return components.url!
+    }
+
+    /// Der Katalog führt Personen als „Nachname, Vorname"; die Personensuche trifft mit
+    /// dem Nachnamen zuverlässiger als mit der ganzen Zeichenkette.
+    static func surname(of author: String) -> String {
+        let first = author.split(separator: ";").first.map(String.init) ?? author
+        if let comma = first.firstIndex(of: ",") {
+            return String(first[..<comma]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return first.split(separator: " ").last.map(String.init)
+            ?? first.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Ein Datensatz der Trefferliste. Die Antwort mischt Ausgaben, Übersetzungen und
+    /// Hörbücher — deshalb wird sie datensatzweise gelesen, nicht als ein Topf.
+    public struct Record: Sendable, Equatable {
+        public var title: String
+        public var creators: [String]
+        public var identifiers: [String]
+
+        /// Erste gültige ISBN dieses Datensatzes. `urn:nbn:…` ist keine.
+        public var isbn: String? {
+            for raw in identifiers {
+                guard let candidate = Self.firstISBN(in: raw) else { continue }
+                return candidate
+            }
+            return nil
+        }
+
+        /// Nur der **Verfasser** belegt die Ausgabe. Erzähler und Übersetzer nicht:
+        /// sonst erbt der Roman die ISBN des Hörbuchs.
+        public func hasAuthor(_ author: String) -> Bool {
+            guard !author.isEmpty else { return false }
+            let writers = creators.filter { $0.contains("[Verfasser") }
+            guard !writers.isEmpty else { return false }
+            let names = writers.map {
+                $0.replacingOccurrences(of: "\\[[^\\]]+\\]", with: "", options: .regularExpression)
+            }
+            return names.contains { AuthorMatch.matches(author, $0) }
+        }
+
+        /// Aus „978-3-442-49404-0 kart. : EUR 16.00" die Nummer holen — und die
+        /// Prüfziffer rechnen, sonst landet irgendeine Artikelnummer bei Amazon.
+        static func firstISBN(in raw: String) -> String? {
+            guard !raw.lowercased().hasPrefix("urn:"), !raw.lowercased().contains("nbn-resolving") else { return nil }
+            let pattern = "97[89][- ]?(?:[0-9][- ]?){9}[0-9]|[0-9][- ]?(?:[0-9][- ]?){8}[0-9Xx]"
+            guard let range = raw.range(of: pattern, options: .regularExpression) else { return nil }
+            let value = ISBN.normalized(String(raw[range]))
+            if value.count == 13 { return AmazonCover.isValidISBN13(value) ? value : nil }
+            if value.count == 10 { return AmazonCover.isValidISBN10(value) ? value : nil }
+            return nil
+        }
+    }
+
+    /// Datensatzweise Sicht auf eine SRU-Antwort.
+    public static func records(_ data: Data) -> [Record] {
+        DublinCoreFields.records(data).map {
+            Record(title: $0["title"]?.first ?? "",
+                   creators: $0["creator"] ?? [],
+                   identifiers: $0["identifier"] ?? [])
+        }
+    }
+
+    /// ISBN aus einer Trefferliste — nur aus dem Datensatz, dessen Verfasser passt.
+    public static func isbn(from data: Data, author: String) -> String? {
+        records(data).first { $0.hasAuthor(author) && $0.isbn != nil }?.isbn
+    }
+
     public static func parse(_ data: Data) -> BookMetadata? {
         let fields = DublinCoreFields.parse(data)
         guard let rawTitle = fields["title"]?.first, !rawTitle.isEmpty else { return nil }
@@ -366,7 +447,7 @@ public enum DNB {
 
 /// Sammelt die Dublin-Core-Felder einer SRU-Antwort nach lokalem Elementnamen.
 enum DublinCoreFields {
-    private static let wanted: Set<String> = ["title", "creator", "date", "format"]
+    private static let wanted: Set<String> = ["title", "creator", "date", "format", "identifier"]
 
     static func parse(_ data: Data) -> [String: [String]] {
         let collector = Collector(wanted: wanted)
@@ -377,18 +458,42 @@ enum DublinCoreFields {
         return collector.fields
     }
 
+    /// Dieselbe Antwort, aber je `<record>` getrennt. Nötig, sobald aus einer
+    /// Trefferliste **ein** Datensatz ausgewählt werden muss: die flache Sicht
+    /// verschmilzt Roman, Übersetzung und Hörbuch zu einem Eintrag.
+    static func records(_ data: Data) -> [[String: [String]]] {
+        let collector = Collector(wanted: wanted, splitOn: "record")
+        let parser = XMLParser(data: data)
+        parser.shouldProcessNamespaces = true
+        parser.delegate = collector
+        parser.parse()
+        collector.closeRecord()
+        return collector.records
+    }
+
     private final class Collector: NSObject, XMLParserDelegate {
         private let wanted: Set<String>
+        private let splitOn: String?
         private var current: String?
         private var buffer = ""
         var fields: [String: [String]] = [:]
+        var records: [[String: [String]]] = []
 
-        init(wanted: Set<String>) {
+        init(wanted: Set<String>, splitOn: String? = nil) {
             self.wanted = wanted
+            self.splitOn = splitOn
+        }
+
+        /// Letzten Datensatz übernehmen — er wird nicht von einem Folgeelement beendet.
+        func closeRecord() {
+            guard splitOn != nil, !fields.isEmpty else { return }
+            records.append(fields)
+            fields = [:]
         }
 
         func parser(_ parser: XMLParser, didStartElement name: String, namespaceURI: String?,
                     qualifiedName: String?, attributes: [String: String]) {
+            if let splitOn, name == splitOn { closeRecord() }
             current = wanted.contains(name) ? name : nil
             buffer = ""
         }
@@ -537,6 +642,16 @@ public actor MetadataLookup {
 
     /// Letzte Stufe für Bestandsbücher ohne ISBN-Treffer: Titelsuche, aber nur
     /// mit Autor-Abgleich — reine Titelsuche liefert falsche Cover.
+    /// ISBN für ein Buch, das keine führt — über Titel und Verfasser bei der DNB.
+    /// Nur die DNB: Google Books liegt regelmäßig an der Tagesquote, und Open Library
+    /// kennt die deutschen Ausgaben schlecht.
+    public func isbn(title: String, author: String) async throws -> String? {
+        guard !title.isEmpty, !author.isEmpty else { return nil }
+        let (data, status) = try await client.get(DNB.searchURL(title: title, author: author))
+        guard status == 200 else { return nil }
+        return DNB.isbn(from: data, author: author)
+    }
+
     public func coverByTitle(title: String, author: String) async throws -> URL? {
         let query = SearchTitle.simplify(title)
         guard !query.isEmpty, !author.isEmpty else { return nil }

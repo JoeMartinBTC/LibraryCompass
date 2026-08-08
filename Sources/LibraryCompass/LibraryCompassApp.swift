@@ -54,6 +54,9 @@ enum LaunchOptions {
     /// `--fetch-covers` holt Cover für den vorhandenen Bestand nach und beendet die App.
     static var fetchesCovers: Bool { CommandLine.arguments.contains("--fetch-covers") }
 
+    /// `--fetch-isbns` schlägt fehlende ISBNs über Titel und Verfasser nach und beendet die App.
+    static var fetchesISBNs: Bool { CommandLine.arguments.contains("--fetch-isbns") }
+
     /// `--mark-read` trägt bei allen Büchern ohne Gelesen-Datum das Erfassungsdatum ein.
     static var marksRead: Bool { CommandLine.arguments.contains("--mark-read") }
 
@@ -135,9 +138,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
-        if LaunchOptions.fetchesCovers {
+        if LaunchOptions.fetchesCovers || LaunchOptions.fetchesISBNs {
             Task { @MainActor in
-                let complete = await Self.fetchCovers()
+                let complete = LaunchOptions.fetchesISBNs
+                    ? await Self.fetchISBNs()
+                    : await Self.fetchCovers()
                 // Unvollständiger Lauf muss sich am Exit-Code zeigen — am 2026-08-08
                 // endete er bei 1188 von 1780 und meldete trotzdem Erfolg.
                 exit(complete ? 0 : 1)
@@ -186,7 +191,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Ein Pflegelauf darf nicht daran sterben, dass jemand das Fenster schließt.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        !LaunchOptions.fetchesCovers
+        !LaunchOptions.fetchesCovers && !LaunchOptions.fetchesISBNs
+    }
+
+    /// Schlägt fehlende ISBNs nach. Erst danach greift für diese Bücher die
+    /// ausgabegenaue Cover-Kette.
+    @MainActor
+    static func fetchISBNs() async -> Bool {
+        guard let container = try? LibraryStore.defaultContainer() else {
+            FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
+            return false
+        }
+        let context = ModelContext(container)
+        do {
+            let report = try await ISBNBackfill.run(context: context) { done, total, title in
+                print("[\(done)/\(total)] \(title)")
+                fflush(stdout)
+            }
+            print(report.summary)
+            fflush(stdout)
+            return report.isComplete
+        } catch {
+            FileHandle.standardError.write(Data("ABBRUCH — ISBN-Nachlauf gescheitert: \(error)\n".utf8))
+            return false
+        }
     }
 
     /// Cover-Nachlauf über den echten Store, sequenziell — Fortschritt auf die Konsole.
