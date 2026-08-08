@@ -36,9 +36,11 @@ public enum ISBNBackfill {
                            lookup: MetadataLookup = MetadataLookup(),
                            pause: UInt64 = 1_000_000_000,
                            progress: ((Int, Int, String) -> Void)? = nil) async throws -> Report {
-        // Ohne Autor gibt es nichts zu belegen — ein Titeltreffer allein reicht nicht.
+        // Auch Bücher ohne Autor werden gefragt: die DNB findet sie über den Titel, und
+        // die Eindeutigkeitsregel im Abgleich verhindert Fehlgriffe. Wer sie ausschließt,
+        // sperrt sie dauerhaft von der ausgabegenauen Coverquelle aus.
         let books = try context.fetch(FetchDescriptor<Book>())
-            .filter { $0.isbn.isEmpty && !$0.title.isEmpty && !$0.author.isEmpty }
+            .filter { $0.isbn.isEmpty && !$0.title.isEmpty }
         var report = Report(total: books.count)
 
         for book in books {
@@ -46,6 +48,11 @@ public enum ISBNBackfill {
             report.checked += 1
             if let isbn = try? await lookup.isbn(title: book.title, author: book.author) {
                 book.isbn = isbn
+                // Der belegte Datensatz kennt den Verfasser — das Buch bisher nicht.
+                if book.author.isEmpty,
+                   let author = try? await lookup.author(title: book.title, author: "") {
+                    book.author = author
+                }
                 report.filled += 1
                 try? context.save()
             }

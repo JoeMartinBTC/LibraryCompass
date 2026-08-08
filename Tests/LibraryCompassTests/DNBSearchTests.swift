@@ -92,7 +92,11 @@ final class DNBRecordTests: XCTestCase {
         XCTAssertNil(DNB.isbn(from: Data(broken.utf8), title: "Der Junge aus dem Wald", author: "Coben, Harlan"))
     }
 
-    func testEmptyAuthorNeverMatches() {
-        XCTAssertNil(DNB.isbn(from: Data(response.utf8), title: "Der Junge aus dem Wald", author: ""))
+    /// Ohne Autor zählt der Beleg, wenn die Trefferliste eindeutig ist — hier bleibt nach
+    /// Titel-, Druck- und ISBN-Prüfung genau ein Datensatz übrig (Hörbuchbox und
+    /// URN-Eintrag fallen weg). Bücher ohne Autor kämen sonst nie zu einer ISBN.
+    func testEmptyAuthorIsAcceptedWhenExactlyOneRecordQualifies() {
+        XCTAssertEqual(DNB.isbn(from: Data(response.utf8), title: "Der Junge aus dem Wald", author: ""),
+                       "9783442494040")
     }
 }

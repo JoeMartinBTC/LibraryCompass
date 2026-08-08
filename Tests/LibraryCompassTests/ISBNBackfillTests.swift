@@ -42,15 +42,34 @@ final class ISBNBackfillTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(context.fetch(FetchDescriptor<Book>()).first).isbn, "")
     }
 
-    /// Ohne Autor gibt es nichts zu belegen — solche Bücher werden gar nicht erst gefragt.
-    func testSkipsBooksWithoutAuthor() async throws {
+    /// Bücher ohne Autor werden **gefragt** — die DNB findet sie über den Titel. Wer sie
+    /// ausschließt, sperrt sie dauerhaft von der ausgabegenauen Coverquelle aus
+    /// („Das Poseidon-Komplott", 2026-08-08). Den Fehlgriff verhindert stattdessen die
+    /// Eindeutigkeitsregel im Abgleich.
+    func testBooksWithoutAuthorAreLookedUpByTitle() async throws {
         let context = ModelContext(try LibraryStore.inMemoryContainer())
-        context.insert(Book(isbn: "", title: "Nur ein Titel", author: ""))
+        context.insert(Book(isbn: "", title: "Der Junge aus dem Wald", author: ""))
         try context.save()
         let (client, lookup) = parts()
 
         let report = try await ISBNBackfill.run(context: context, lookup: lookup, pause: 0)
 
+        XCTAssertEqual(report.total, 1)
+        XCTAssertEqual(report.filled, 1)
+        let requested = await client.requested
+        XCTAssertTrue(requested.contains { $0.contains("TIT") && !$0.contains("PER") },
+                      "ohne Autor wird nur der Titel abgefragt: \(requested)")
+        // Der belegte Datensatz füllt zugleich die Autorenlücke.
+        XCTAssertEqual(try XCTUnwrap(context.fetch(FetchDescriptor<Book>()).first).author, "Coben, Harlan")
+    }
+
+    func testBookWithoutTitleIsLeftAlone() async throws {
+        let context = ModelContext(try LibraryStore.inMemoryContainer())
+        context.insert(Book(isbn: "", title: "", author: "Wer auch immer"))
+        try context.save()
+        let (client, lookup) = parts()
+
+        let report = try await ISBNBackfill.run(context: context, lookup: lookup, pause: 0)
         XCTAssertEqual(report.total, 0)
         let requested = await client.requested
         XCTAssertTrue(requested.isEmpty, requested.description)

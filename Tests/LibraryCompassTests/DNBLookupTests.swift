@@ -95,10 +95,13 @@ final class DNBLookupTests: XCTestCase {
 
         let result = try await lookup.metadata(isbn: "9783442156917")
         let metadata = try XCTUnwrap(result)
+        // Die Metadaten stammen von Open Library — die DNB hat den Titel nicht
+        // überschrieben, obwohl ihr Datensatz („Toxin") im Stub bereitliegt.
         XCTAssertEqual(metadata.title, "Der Schwarm")
-        let requested = await client.requested
-        XCTAssertFalse(requested.contains { $0.contains("services.dnb.de") },
-                       "Bei OL-Treffer darf die DNB nicht gefragt werden")
+        XCTAssertEqual(metadata.author, "Frank Schätzing")
+        // Für das **Cover** darf die DNB sehr wohl gefragt werden: sie kennt zu
+        // demselben Titel weitere ISBNs (Druck neben E-Book), und nur unter denen
+        // führt Amazon manchmal ein Bild. Das ist ein anderer Zweck als die Metadaten.
     }
 
     /// Die DNB liefert nie ein Cover. Steht der Titel schon fest, muss Google

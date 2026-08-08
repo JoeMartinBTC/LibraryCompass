@@ -392,7 +392,11 @@ public enum DNB {
         components.queryItems = [
             URLQueryItem(name: "version", value: "1.1"),
             URLQueryItem(name: "operation", value: "searchRetrieve"),
-            URLQueryItem(name: "query", value: "TIT=\(SearchTitle.simplify(title)) and PER=\(surname(of: author))"),
+            // Ohne Autor bleibt die Titelsuche allein — die Eindeutigkeitsregel in
+            // `isbn(from:title:author:)` fängt ab, was dabei mehrdeutig zurückkommt.
+            URLQueryItem(name: "query", value: author.isEmpty
+                         ? "TIT=\(SearchTitle.simplify(title))"
+                         : "TIT=\(SearchTitle.simplify(title)) and PER=\(surname(of: author))"),
             URLQueryItem(name: "recordSchema", value: "oai_dc"),
             URLQueryItem(name: "maximumRecords", value: "10")
         ]
@@ -429,12 +433,14 @@ public enum DNB {
         }
 
         /// Erste gültige ISBN dieses Datensatzes. `urn:nbn:…` ist keine.
-        public var isbn: String? {
-            for raw in identifiers {
-                guard let candidate = Self.firstISBN(in: raw) else { continue }
-                return candidate
-            }
-            return nil
+        public var isbn: String? { isbns.first }
+
+        /// **Alle** ISBNs des Datensatzes. Ein Titel erscheint oft mehrfach — kartoniert,
+        /// gebunden, als E-Book. Amazon führt sein Bild nur unter manchen davon: „In den
+        /// Tod" liegt im Bestand als E-Book-ISBN `9783492990172` (43 Byte = kein Bild),
+        /// dieselbe Ausgabe als Druck unter `349206115X` (43.707 Byte).
+        public var isbns: [String] {
+            identifiers.compactMap { Self.firstISBN(in: $0) }
         }
 
         /// Nur der **Verfasser** belegt die Ausgabe. Erzähler und Übersetzer nicht:
@@ -488,9 +494,35 @@ public enum DNB {
     /// deutschen Ausgabe) und **Druckausgabe** (sonst gewinnt der Tonträger, der den
     /// Autor ebenfalls als Verfasser führt).
     public static func isbn(from data: Data, title: String, author: String) -> String? {
-        records(data).first {
-            $0.hasAuthor(author) && TitleMatch.matches(title, $0.title) && $0.isPrint && $0.isbn != nil
-        }?.isbn
+        matching(data, title: title, author: author).first?.isbn
+    }
+
+    /// Alle ISBNs der belegten Datensätze — Druck vor E-Book, damit die Coverquelle
+    /// eine Chance hat.
+    public static func isbns(from data: Data, title: String, author: String) -> [String] {
+        matching(data, title: title, author: author).flatMap(\.isbns)
+    }
+
+    /// Der Verfasser des belegten Datensatzes. Für Bestandsbücher, die selbst keinen führen.
+    public static func author(from data: Data, title: String, author: String) -> String? {
+        matching(data, title: title, author: author).first
+            .map { Self.author(from: $0.creators) }
+            .flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    /// Datensätze, die als Beleg taugen: passender Titel, Druckausgabe, mit ISBN — und
+    /// passender Verfasser, **sofern das Buch einen führt**.
+    ///
+    /// ⚠️ Ohne Autor entfällt der stärkste Wächter. Dann zählt der Beleg nur, wenn die
+    /// Trefferliste **eindeutig** ist: ein Titel, ein Datensatz. „Das Poseidon-Komplott"
+    /// führt im Bestand keinen Autor und ist über den Titel allein eindeutig belegt —
+    /// bei mehreren Treffern bliebe es lieber ohne ISBN als mit der falschen.
+    private static func matching(_ data: Data, title: String, author: String) -> [Record] {
+        let usable = records(data).filter {
+            TitleMatch.matches(title, $0.title) && $0.isPrint && !$0.isbns.isEmpty
+        }
+        guard !author.isEmpty else { return usable.count == 1 ? usable : [] }
+        return usable.filter { $0.hasAuthor(author) }
     }
 
     public static func parse(_ data: Data) -> BookMetadata? {
@@ -703,6 +735,18 @@ public actor MetadataLookup {
            let google = try? await googleBooks(isbn: isbn), let cover = google.coverURL {
             return cover
         }
+        // Die gespeicherte ISBN kann die des E-Books sein — Amazon führt sein Bild dann
+        // unter keiner davon. Die DNB kennt zu demselben Titel auch die Druckausgabe;
+        // deren ISBN trifft. Belegt an „In den Tod" (Grimm): gespeichert `9783492990172`
+        // = 43 Byte, Druck `349206115X` = 43.707 Byte.
+        if let alternatives = try? await alternativeISBNs(title: title, author: author) {
+            for candidate in alternatives where ISBN.canonical(candidate) != ISBN.canonical(isbn) {
+                if let amazon = AmazonCover.url(isbn: candidate), let cover = await usableCover(amazon) {
+                    return cover
+                }
+            }
+        }
+
         // Letzte Stufe: Titelsuche, aber nur mit Autor-Abgleich — reine Titelsuche
         // liefert falsche Bilder.
         return try? await coverByTitle(title: title, author: author)
@@ -748,11 +792,30 @@ public actor MetadataLookup {
     /// ISBN für ein Buch, das keine führt — über Titel und Verfasser bei der DNB.
     /// Nur die DNB: Google Books liegt regelmäßig an der Tagesquote, und Open Library
     /// kennt die deutschen Ausgaben schlecht.
+    /// ⚠️ Der Autor darf fehlen. Bücher ohne Autor sind sonst für immer ausgeschlossen —
+    /// „Das Poseidon-Komplott" führt im Bestand keinen und ist über den Titel allein
+    /// eindeutig belegt. Die Eindeutigkeitsregel steckt in `DNB.isbn`.
     public func isbn(title: String, author: String) async throws -> String? {
-        guard !title.isEmpty, !author.isEmpty else { return nil }
-        let (data, status) = try await client.get(DNB.searchURL(title: title, author: author))
-        guard status == 200 else { return nil }
+        guard let data = try await searchRecords(title: title, author: author) else { return nil }
         return DNB.isbn(from: data, title: title, author: author)
+    }
+
+    /// Verfasser aus dem belegten Datensatz — füllt die Lücke bei Büchern ohne Autor.
+    public func author(title: String, author: String) async throws -> String? {
+        guard let data = try await searchRecords(title: title, author: author) else { return nil }
+        return DNB.author(from: data, title: title, author: author)
+    }
+
+    /// Weitere ISBNs derselben Ausgabe, etwa die Druckfassung neben dem E-Book.
+    public func alternativeISBNs(title: String, author: String) async throws -> [String] {
+        guard let data = try await searchRecords(title: title, author: author) else { return [] }
+        return DNB.isbns(from: data, title: title, author: author)
+    }
+
+    private func searchRecords(title: String, author: String) async throws -> Data? {
+        guard !title.isEmpty else { return nil }
+        let (data, status) = try await client.get(DNB.searchURL(title: title, author: author))
+        return status == 200 ? data : nil
     }
 
     public func coverByTitle(title: String, author: String) async throws -> URL? {
