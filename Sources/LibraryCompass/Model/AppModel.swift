@@ -186,7 +186,8 @@ final class AppModel {
             if book.year == nil { book.year = metadata.year }
             if book.pages == nil { book.pages = metadata.pages }
             if let coverURL = metadata.coverURL,
-               let path = try? await CoverCache.shared.download(from: coverURL, isbn: book.isbn) {
+               let stem = CoverKey.stem(isbn: book.isbn, title: book.title, author: book.author),
+               let path = try? await CoverCache.shared.download(from: coverURL, stem: stem) {
                 book.coverPath = path
             }
             didEdit()

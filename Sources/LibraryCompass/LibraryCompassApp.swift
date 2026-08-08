@@ -137,8 +137,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if LaunchOptions.fetchesCovers {
             Task { @MainActor in
-                await Self.fetchCovers()
-                NSApp.terminate(nil)
+                let complete = await Self.fetchCovers()
+                // Unvollständiger Lauf muss sich am Exit-Code zeigen — am 2026-08-08
+                // endete er bei 1188 von 1780 und meldete trotzdem Erfolg.
+                exit(complete ? 0 : 1)
             }
             return
         }
@@ -182,20 +184,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fflush(stdout)
     }
 
+    /// Ein Pflegelauf darf nicht daran sterben, dass jemand das Fenster schließt.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        !LaunchOptions.fetchesCovers
+    }
+
     /// Cover-Nachlauf über den echten Store, sequenziell — Fortschritt auf die Konsole.
+    /// Ergebnis sagt, ob jedes vorgesehene Buch tatsächlich gefragt wurde.
     @MainActor
-    static func fetchCovers() async {
+    static func fetchCovers() async -> Bool {
         guard let container = try? LibraryStore.defaultContainer() else {
             FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
-            return
+            return false
         }
         let context = ModelContext(container)
-        let report = try? await CoverBackfill.run(context: context) { done, total, title in
-            print("[\(done)/\(total)] \(title)")
+        do {
+            let report = try await CoverBackfill.run(context: context) { done, total, title in
+                print("[\(done)/\(total)] \(title)")
+                fflush(stdout)
+            }
+            print(report.summary)
             fflush(stdout)
+            return report.isComplete
+        } catch {
+            FileHandle.standardError.write(Data("ABBRUCH — Nachlauf gescheitert: \(error)\n".utf8))
+            return false
         }
-        print(report?.summary ?? "Nachlauf fehlgeschlagen")
-        fflush(stdout)
     }
 
     @MainActor

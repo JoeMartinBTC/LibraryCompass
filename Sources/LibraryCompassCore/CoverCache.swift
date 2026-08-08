@@ -30,11 +30,17 @@ public actor CoverCache {
     }
 
     /// Lädt ein Cover und legt es ab. Ergebnis ist der Dateiname für `Book.coverPath`.
-    public func download(from url: URL, isbn: String) async throws -> String? {
+    ///
+    /// `stem` kommt aus `CoverKey.stem` und ist pro Buch eindeutig. Früher stand hier die
+    /// ISBN, und der Nachlauf reichte bei ISBN-losen Büchern den Titel durch — der lief
+    /// durch `ISBN.normalized` und blieb leer, worauf 50 Bücher sich die Datei `.jpg`
+    /// teilten (Befund am echten Bestand 2026-08-08).
+    public func download(from url: URL, stem: String) async throws -> String? {
+        guard !stem.isEmpty else { return nil }
         let (data, status) = try await client.get(url)
         guard status == 200, Self.isUsableImage(data) else { return nil }
 
-        let name = fileName(for: isbn, url: url)
+        let name = fileName(for: stem, url: url)
         let target = try directory().appendingPathComponent(name)
         try data.write(to: target, options: .atomic)
         return name
@@ -45,8 +51,7 @@ public actor CoverCache {
         return base.appendingPathComponent(name)
     }
 
-    private func fileName(for isbn: String, url: URL) -> String {
-        let stem = isbn.isEmpty ? UUID().uuidString : ISBN.normalized(isbn)
+    private func fileName(for stem: String, url: URL) -> String {
         let ext = url.pathExtension.isEmpty ? "jpg" : url.pathExtension
         return "\(stem).\(ext)"
     }
