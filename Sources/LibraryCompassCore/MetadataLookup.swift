@@ -437,9 +437,14 @@ public enum DNB {
     /// Datensatzweise Sicht auf eine SRU-Antwort.
     public static func records(_ data: Data) -> [Record] {
         DublinCoreFields.records(data).map {
+            // Nur, was die DNB selbst als ISBN ausweist. Ungetypte Bezeichner zählen
+            // ebenfalls — andere Kataloge kennzeichnen nicht —, alles andere (dnb:IDN,
+            // tel:URN …) bleibt draußen.
             Record(title: $0["title"]?.first ?? "",
                    creators: $0["creator"] ?? [],
-                   identifiers: $0["identifier"] ?? [],
+                   identifiers: $0.filter { key, _ in
+                       key == "identifier" || key.uppercased().hasSuffix("ISBN")
+                   }.values.flatMap { $0 },
                    formats: $0["format"] ?? [])
         }
     }
@@ -551,6 +556,13 @@ enum DublinCoreFields {
                     qualifiedName: String?, attributes: [String: String]) {
             if let splitOn, name == splitOn { closeRecord() }
             current = wanted.contains(name) ? name : nil
+            // Die DNB kennzeichnet Bezeichner per Attribut: `tel:ISBN` gegen `dnb:IDN`.
+            // Ohne den Typ ist eine nackte Katalognummer von einer nackten ISBN nicht
+            // zu unterscheiden — und Katalognummern bestehen die ISBN-10-Prüfziffer.
+            if current == "identifier" {
+                let type = attributes["xsi:type"] ?? attributes["type"] ?? ""
+                current = type.isEmpty ? "identifier" : "identifier:\(type)"
+            }
             buffer = ""
         }
 
@@ -561,7 +573,9 @@ enum DublinCoreFields {
 
         func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?,
                     qualifiedName: String?) {
-            guard let key = current, key == name else { return }
+            // `current` trägt beim Bezeichner den Typ mit („identifier:tel:ISBN"),
+            // deshalb der Vergleich auf den Elementnamen davor.
+            guard let key = current, key == name || key.hasPrefix("\(name):") else { return }
             let value = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
             if !value.isEmpty { fields[key, default: []].append(value) }
             current = nil

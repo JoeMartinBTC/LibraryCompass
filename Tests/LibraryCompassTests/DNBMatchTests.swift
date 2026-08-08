@@ -106,6 +106,42 @@ final class DNBMatchTests: XCTestCase {
         XCTAssertEqual(DNB.Record.firstISBN(in: "0-415-00820-4"), "0415008204")
     }
 
+    /// 🔴 Der eigentliche Grund für die Katalognummern: die DNB **kennzeichnet** jeden
+    /// Bezeichner per Attribut — `xsi:type="tel:ISBN"` gegen `xsi:type="dnb:IDN"`.
+    /// Der Parser warf die Attribute weg, und danach war eine nackte Katalognummer von
+    /// einer nackten ISBN nicht mehr zu unterscheiden. Es gab nie Anlass zu raten.
+    private let typedResponse = """
+    <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/"><records>
+      <record><recordData><dc xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <dc:title>Vergeltung : Roman</dc:title>
+        <dc:creator>Brown, Dale [Verfasser]</dc:creator>
+        <dc:identifier xsi:type="dnb:IDN">1264346158</dc:identifier>
+        <dc:format>512 Seiten</dc:format>
+      </dc></recordData></record>
+      <record><recordData><dc xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <dc:title>Vergeltung : Roman</dc:title>
+        <dc:creator>Brown, Dale [Verfasser]</dc:creator>
+        <dc:identifier xsi:type="tel:ISBN">978-3-442-49404-0 Broschur : EUR 12.00</dc:identifier>
+        <dc:identifier xsi:type="dnb:IDN">125759740X</dc:identifier>
+        <dc:format>512 Seiten</dc:format>
+      </dc></recordData></record>
+    </records></searchRetrieveResponse>
+    """
+
+    func testOnlyIdentifiersTypedAsISBNCount() {
+        let records = DNB.records(Data(typedResponse.utf8))
+        XCTAssertEqual(records.count, 2)
+        XCTAssertNil(records[0].isbn, "dnb:IDN ist eine Katalognummer, keine ISBN")
+        XCTAssertEqual(records[1].isbn, "9783442494040")
+    }
+
+    /// Der Datensatz ohne ISBN darf nicht ersatzweise seine Katalognummer hergeben —
+    /// genau so kamen 18 falsche Nummern in den Bestand.
+    func testRecordWithoutISBNYieldsNothingRatherThanItsIDN() {
+        XCTAssertEqual(DNB.isbn(from: Data(typedResponse.utf8), title: "Vergeltung", author: "Brown, Dale"),
+                       "9783442494040")
+    }
+
     func testNoPrintEditionMeansNoISBN() {
         let xml = """
         <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/"><records>
