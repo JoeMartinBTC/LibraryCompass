@@ -19,6 +19,17 @@ An image under **1,500 bytes** is not an image. Open Library answers with a 1×1
 pixel instead of a 404, and Amazon answers a genuine miss with 43 bytes. Both slip
 past a naive `status == 200` check, so `CoverCache.isUsableImage` gates every write.
 
+Size only proves an image *exists*, though — not that it belongs to this book. Two
+books once ended up with byte-identical covers: the HarperCollins placeholder
+"COVER TO BE REVEALED", a perfectly valid 15,419-byte JPEG. The guard against that
+is not a list of known placeholders (every publisher has one) but a rule:
+**the same image is never handed to two different books.** `CoverCache` keeps a
+checksum→stem index, built on first use from the files already on disk, and rejects
+an image that already belongs to someone else.
+
+That costs the occasional cover when two editions genuinely share artwork. It is the
+right trade: a missing cover reads as a gap, a wrong one reads as a broken program.
+
 ## The cache key: `CoverKey.stem`
 
 ```swift
@@ -134,9 +145,23 @@ sqlite3 "$DB" "select count(*) from (select ZCOVERPATH c, count(*) n from ZBOOK
 sqlite3 "$DB" "select count(*) from ZBOOK where ZCOVERPATH is not null and ZCOVERPATH<>'';"
 ```
 
-Two further checks worth running after a large import: every `coverPath` resolves to a
-file of at least 1,500 bytes, and every book *with* an ISBN carries an ISBN-derived
-stem. Both should come back zero.
+Three further checks worth running after a large import: every `coverPath` resolves to a
+file of at least 1,500 bytes; every book *with* an ISBN carries an ISBN-derived stem; and
+no two cover files are byte-identical. The first two should come back zero. The third may
+legitimately report a pair when the same book is catalogued twice — that happens, and the
+entries are not duplicates to be merged.
+
+A stem that does not match its book's ISBN means the cover was fetched over the fuzzy
+title search *before* the book had an ISBN. Those are worth clearing so the next run
+fetches the edition-exact image instead:
+
+```bash
+sqlite3 "$DB" "update ZBOOK set ZCOVERPATH=null
+  where ZISBN<>'' and ZCOVERPATH like 't-%';"
+```
+
+Cover files that no book points at are leftovers from earlier runs and can be deleted;
+compare the directory listing against the `coverPath` values.
 
 ## Filling in missing ISBNs first
 

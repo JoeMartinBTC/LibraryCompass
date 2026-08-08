@@ -28,7 +28,7 @@ Out of scope for now: iPhone app, sync.
 ```bash
 ./make-app.sh      # build the .app bundle (SwiftPM release + ad-hoc signing)
 ./install-app.sh   # install to /Applications (resets the TCC camera grant — see docs/scanner.md)
-swift test         # 182 tests, including live network checks
+swift test         # 203 tests, including live network checks
 ./ui-test.sh       # XCUI smoke tests via xcodegen project
 ```
 
@@ -67,7 +67,7 @@ The key lives outside the repo, next to the library database.
 |---|---|
 | `Sources/LibraryCompassCore/` | model, store, import/export, query, stats, lookup, cover cache, scan/title logic |
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
-| `Tests/LibraryCompassTests/` | 182 tests, including live network checks |
+| `Tests/LibraryCompassTests/` | 203 tests, including live network checks |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
 | `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, Google Books key setup |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |
