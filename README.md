@@ -71,11 +71,13 @@ The key lives outside the repo, next to the library database.
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
 | `Tests/LibraryCompassTests/` | 209 tests, including live network checks |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
-| `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, Google Books key setup |
+| `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, backup & restore, Google Books key setup |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |
 
 Data lives in `~/Library/Application Support/LibraryCompass/` (SwiftData store,
-cover cache, API key) — never in the repo.
+cover cache, API key) — never in the repo. A scheduled job snapshots the database and
+exports a CSV three times a day; see **[docs/backup.md](docs/backup.md)** for the restore
+procedure.
 
 ## License
 
