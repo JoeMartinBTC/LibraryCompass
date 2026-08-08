@@ -21,6 +21,19 @@ public enum CoverKey {
         return "t-" + String(fnv1a(basis), radix: 16)
     }
 
+    /// Welches **Buch** ist gemeint — unabhängig davon, wie seine ISBN geschrieben steht.
+    ///
+    /// Der Dateistamm folgt der Schreibweise des Eintrags, damit bestehende Cover ihren
+    /// Namen behalten. Für die Frage „gehört dieses Bild schon jemand anderem?" ist das
+    /// aber die falsche Größe: „Cobra" von Forsyth steht zweimal im Bestand, einmal als
+    /// `344247776X` und einmal als `9783442477760` — **dieselbe Ausgabe**. Beide dürfen
+    /// dasselbe Bild tragen, zwei *verschiedene* Bücher nicht.
+    public static func identity(isbn: String, title: String, author: String) -> String? {
+        let normalized = ISBN.normalized(isbn)
+        if !normalized.isEmpty { return ISBN.canonical(normalized) }
+        return stem(isbn: isbn, title: title, author: author)
+    }
+
     /// Kleinschreibung ohne Akzente und Satzzeichen, damit „Die Chefs." und „Die Chefs"
     /// dieselbe Datei treffen.
     private static func fold(_ value: String) -> String {

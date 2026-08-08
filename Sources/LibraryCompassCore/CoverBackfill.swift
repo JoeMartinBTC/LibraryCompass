@@ -70,6 +70,7 @@ public enum CoverBackfill {
         guard let url = await lookup.coverURL(isbn: book.isbn,
                                               title: book.title,
                                               author: book.author) else { return nil }
-        return try await cache.download(from: url, stem: stem)
+        let identity = CoverKey.identity(isbn: book.isbn, title: book.title, author: book.author)
+        return try await cache.download(from: url, stem: stem, identity: identity)
     }
 }

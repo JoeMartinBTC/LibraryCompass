@@ -25,6 +25,19 @@ public enum ISBN {
     public static func normalized(_ raw: String) -> String {
         raw.uppercased().filter { $0.isNumber || $0 == "X" }
     }
+
+    /// Eine Ausgabe, eine Schreibweise: ISBN-10 wird zur ISBN-13 gerechnet.
+    /// Dieselbe Ausgabe steht im Bestand mal als `344247776X`, mal als `9783442477760`;
+    /// für jeden Vergleich „ist das dasselbe Buch?" zählt die kanonische Form.
+    public static func canonical(_ raw: String) -> String {
+        let value = normalized(raw)
+        guard value.count == 10, AmazonCover.isValidISBN10(value) else { return value }
+        let core = "978" + value.dropLast()
+        let sum = core.enumerated().reduce(0) { total, pair in
+            total + (pair.offset % 2 == 0 ? 1 : 3) * Int(String(pair.element)).orZero
+        }
+        return core + String((10 - sum % 10) % 10)
+    }
 }
 
 /// Autor-Abgleich für den Titelsuche-Fallback (BUILD-HANDOVER §4/§9).

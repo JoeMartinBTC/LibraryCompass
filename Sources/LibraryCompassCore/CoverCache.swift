@@ -40,8 +40,13 @@ public actor CoverCache {
     /// ISBN, und der Nachlauf reichte bei ISBN-losen Büchern den Titel durch — der lief
     /// durch `ISBN.normalized` und blieb leer, worauf 50 Bücher sich die Datei `.jpg`
     /// teilten (Befund am echten Bestand 2026-08-08).
-    public func download(from url: URL, stem: String) async throws -> String? {
+    /// - Parameter identity: Welches **Buch** gemeint ist (kanonische ISBN, sonst der
+    ///   Titel-Hash). Der Dateistamm folgt der Schreibweise des Eintrags, die Identität
+    ///   der Ausgabe — sonst hält der Platzhalter-Wächter zwei Erfassungen desselben
+    ///   Buchs für zwei verschiedene Bücher und verweigert der zweiten ihr Cover.
+    public func download(from url: URL, stem: String, identity: String? = nil) async throws -> String? {
         guard !stem.isEmpty else { return nil }
+        let owner = identity ?? stem
         let (data, status) = try await client.get(url)
         guard status == 200, Self.isUsableImage(data) else { return nil }
 
@@ -50,12 +55,12 @@ public actor CoverCache {
         // trugen beide das HarperCollins-Bild „COVER TO BE REVEALED" — 15.419 Byte, also
         // weit über der Mindestgröße. Ein falsches Cover wiegt schwerer als ein fehlendes.
         let digest = Self.digest(of: data)
-        if let owner = try await ownerOfImage(digest), owner != stem { return nil }
+        if let existing = try ownerOfImage(digest), existing != owner { return nil }
 
         let name = fileName(for: stem, url: url)
         let target = try directory().appendingPathComponent(name)
         try data.write(to: target, options: .atomic)
-        knownImages[digest] = stem
+        knownImages[digest] = owner
         return name
     }
 
@@ -69,7 +74,11 @@ public actor CoverCache {
                                                                      includingPropertiesForKeys: nil)) ?? []
             for file in files {
                 guard let data = try? Data(contentsOf: file) else { continue }
-                knownImages[Self.digest(of: data)] = file.deletingPathExtension().lastPathComponent
+                // Dateien tragen die Schreibweise ihres Eintrags; für den Vergleich zählt
+                // die kanonische Form, sonst gilt `344247776X.jpg` als anderes Buch
+                // als `9783442477760.jpg`.
+                let name = file.deletingPathExtension().lastPathComponent
+                knownImages[Self.digest(of: data)] = name.hasPrefix("t-") ? name : ISBN.canonical(name)
             }
         }
         return knownImages[digest]
