@@ -19,8 +19,9 @@ Delicious Library for personal use.
   strips catalog clutter from titles ("Wer Lügen sät: Thriller" → "Wer Lügen sät")
 - **CSV export** (⌘E) — all ten fields, RFC 4180 with BOM so Excel shows umlauts
 - Library UI: grid/list, search, filters, stats cards, zoom, light/dark. Sort by title,
-  author, year, rating, last read — or **"Ohne Cover zuerst"**, which pulls the books
-  still missing artwork to the top so they can be worked through in one pass
+  author, publication year, rating, last read, **last added**, or **"Ohne Cover zuerst"**,
+  which pulls the books still missing artwork to the top so they can be worked through
+  in one pass
 - Local persistence (SwiftData), no account, no server
 
 Out of scope for now: iPhone app, sync.
@@ -30,7 +31,7 @@ Out of scope for now: iPhone app, sync.
 ```bash
 ./make-app.sh      # build the .app bundle (SwiftPM release + ad-hoc signing)
 ./install-app.sh   # install to /Applications (resets the TCC camera grant — see docs/scanner.md)
-swift test         # 209 tests, including live network checks
+swift test         # 229 tests, including live network checks
 ./ui-test.sh       # XCUI smoke tests via xcodegen project
 ```
 
@@ -69,7 +70,7 @@ The key lives outside the repo, next to the library database.
 |---|---|
 | `Sources/LibraryCompassCore/` | model, store, import/export, query, stats, lookup, cover cache, scan/title logic |
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
-| `Tests/LibraryCompassTests/` | 209 tests, including live network checks |
+| `Tests/LibraryCompassTests/` | 229 tests, including live network checks |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
 | `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, backup & restore, Google Books key setup |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |

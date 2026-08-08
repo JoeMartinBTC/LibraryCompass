@@ -16,15 +16,17 @@ public enum LibraryFilter: String, CaseIterable, Sendable {
 
 /// Sortier-Optionen der Toolbar, Beschriftungen exakt wie in README §5.2.
 public enum LibrarySort: String, CaseIterable, Sendable {
-    case titel, autor, jahr, bewertung, zuletztGelesen, ohneCover
+    case titel, autor, jahr, bewertung, zuletztGelesen, zuletztHinzugefügt, ohneCover
 
     public var title: String {
         switch self {
         case .titel: "Titel A–Z"
         case .autor: "Autor A–Z"
-        case .jahr: "Jahr, neueste zuerst"
+        // „Jahr" allein wurde als Erfassungsdatum gelesen — es ist das Erscheinungsjahr.
+        case .jahr: "Erscheinungsjahr, neueste zuerst"
         case .bewertung: "Bewertung, beste zuerst"
         case .zuletztGelesen: "Zuletzt gelesen"
+        case .zuletztHinzugefügt: "Zuletzt hinzugefügt"
         case .ohneCover: "Ohne Cover zuerst"
         }
     }
@@ -117,6 +119,15 @@ public struct BookQuery: Sendable, Equatable {
             return rows.sorted { a, b in
                 let da = a.readDate?.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
                 let db = b.readDate?.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
+                if da != db { return da > db }
+                return Self.compare(a.title, b.title) == .orderedAscending
+            }
+        case .zuletztHinzugefügt:
+            // Das einzige Datum, das jedes Buch führt. „Zuletzt gelesen" hilft beim
+            // frisch Erfassten nicht: ohne Lesedatum landet es ganz hinten — und genau
+            // dieses Buch sucht man gerade.
+            return rows.sorted { a, b in
+                let da = a.addedDate.timeIntervalSince1970, db = b.addedDate.timeIntervalSince1970
                 if da != db { return da > db }
                 return Self.compare(a.title, b.title) == .orderedAscending
             }
