@@ -27,6 +27,25 @@ final class CoverByTitleTests: XCTestCase {
         XCTAssertEqual(SearchTitle.simplify("[Kill for me, kill for you]"), "Kill for me, kill for you")
     }
 
+    /// Deutsche Bestandstitel trennen den Untertitel oft mit **Punkt** statt Doppelpunkt.
+    /// Mit dem ganzen Wortlaut findet die DNB nichts („Mr. Diamond. Der Insider-Skandal
+    /// von Wall Street" → 0 Treffer), mit dem Haupttitel schon (→ 1 Treffer).
+    func testCutsSubtitleSeparatedByAPeriod() {
+        XCTAssertEqual(SearchTitle.simplify("Mr. Diamond. Der Insider-Skandal von Wall Street"),
+                       "Mr. Diamond")
+        XCTAssertEqual(SearchTitle.simplify("NLP als Psychotherapie. Harmlose Mixtur oder hochwirksames Verfahren?"),
+                       "NLP als Psychotherapie")
+        XCTAssertEqual(SearchTitle.simplify("Einladung zum Zen."), "Einladung zum Zen")
+    }
+
+    /// Anti: Abkürzungen dürfen den Titel nicht zerschneiden — „Mr." endet auf einem
+    /// zweibuchstabigen Wort, „Diamond." nicht.
+    func testDoesNotCutAtAbbreviations() {
+        XCTAssertEqual(SearchTitle.simplify("Dr. No"), "Dr. No")
+        XCTAssertEqual(SearchTitle.simplify("Mr. Mercedes"), "Mr. Mercedes")
+        XCTAssertEqual(SearchTitle.simplify("St. Petersburg"), "St. Petersburg")
+    }
+
     // MARK: Open-Library-Suche
 
     func testSearchURLCarriesTitleAndAuthor() {

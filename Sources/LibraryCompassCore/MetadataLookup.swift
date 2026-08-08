@@ -131,7 +131,25 @@ public enum SearchTitle {
         if let colon = value.range(of: ":") {
             value = String(value[..<colon.lowerBound])
         }
-        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        value = withoutSubtitleAfterPeriod(value)
+        return value.trimmingCharacters(in: CharacterSet(charactersIn: " ."))
+    }
+
+    /// Deutsche Bestandstitel trennen den Untertitel oft mit **Punkt**:
+    /// „Mr. Diamond. Der Insider-Skandal von Wall Street". Mit dem ganzen Wortlaut findet
+    /// die DNB nichts, mit dem Haupttitel einen Treffer.
+    ///
+    /// ⚠️ Abkürzungen dürfen dabei nicht zerschnitten werden — sonst wird aus „Mr. Diamond"
+    /// das Wort „Mr". Deshalb wird nur nach einem Wort mit **mehr als zwei Buchstaben**
+    /// getrennt; „Mr.", „Dr.", „St." bleiben stehen.
+    private static func withoutSubtitleAfterPeriod(_ value: String) -> String {
+        var index = value.startIndex
+        while let dot = value[index...].range(of: ". ") {
+            let word = value[..<dot.lowerBound].split(whereSeparator: { !$0.isLetter && !$0.isNumber }).last ?? ""
+            if word.count > 2 { return String(value[..<dot.lowerBound]) }
+            index = dot.upperBound
+        }
+        return value
     }
 }
 
