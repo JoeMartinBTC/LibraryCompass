@@ -133,3 +133,7 @@ Amazon nichts führt.
 Wichtig dabei: Die Cover-Kette ist eine eigene Methode (`coverURL(isbn:title:author:)`)
 und läuft auch, wenn **keine** Quelle Metadaten liefert — Metadaten-Treffer und
 Cover-Treffer sind unabhängige Ereignisse.
+
+Was **nach** dem gefundenen Bild passiert — Dateiname je Buch (`CoverKey`), Ablage,
+Wiederaufnahme, Vollständigkeitsnachweis und die zwei Fehler, die am 1.780er-Bestand
+sichtbar wurden — steht in **[covers.md](covers.md)**.
