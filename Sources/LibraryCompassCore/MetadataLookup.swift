@@ -419,7 +419,12 @@ public enum DNB {
         /// Aus „978-3-442-49404-0 kart. : EUR 16.00" die Nummer holen — und die
         /// Prüfziffer rechnen, sonst landet irgendeine Artikelnummer bei Amazon.
         static func firstISBN(in raw: String) -> String? {
-            guard !raw.lowercased().hasPrefix("urn:"), !raw.lowercased().contains("nbn-resolving") else { return nil }
+            let lower = raw.lowercased()
+            // ⚠️ Adressen tragen die **Katalognummer** der DNB („http://d-nb.info/1264340478/34").
+            // Die ist zehnstellig und mod-11-geprüft, besteht also die ISBN-10-Rechnung
+            // zwangsläufig — eine gültige Prüfziffer belegt nicht, dass etwas eine ISBN ist.
+            guard !lower.contains("://"), !lower.hasPrefix("urn:"), !lower.contains("d-nb.info"),
+                  !lower.contains("nbn-resolving") else { return nil }
             let pattern = "97[89][- ]?(?:[0-9][- ]?){9}[0-9]|[0-9][- ]?(?:[0-9][- ]?){8}[0-9Xx]"
             guard let range = raw.range(of: pattern, options: .regularExpression) else { return nil }
             let value = ISBN.normalized(String(raw[range]))

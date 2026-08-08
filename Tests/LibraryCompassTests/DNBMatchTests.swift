@@ -83,6 +83,29 @@ final class DNBMatchTests: XCTestCase {
                        "9783492304276")
     }
 
+    /// 🔴 Dritter Fehlgriff aus dem echten Lauf: `<dc:identifier>http://d-nb.info/1264340478/34`
+    /// wurde als ISBN-10 übernommen. **DNB-Katalognummern sind zehnstellig und
+    /// mod-11-geprüft — sie bestehen die ISBN-10-Prüfziffernrechnung zwangsläufig.**
+    /// Eine Prüfziffer belegt also nicht, dass die Nummer eine ISBN ist.
+    func testCatalogueNumberInAURLIsNotAnISBN() {
+        for raw in ["http://d-nb.info/1264340478/34",
+                    "https://d-nb.info/1369593880",
+                    "urn:nbn:de:101:1-2022102122032"] {
+            XCTAssertNil(DNB.Record.firstISBN(in: raw), raw)
+        }
+    }
+
+    /// Zur Sicherheit die Gegenprobe: die Katalognummern rechnen sich als ISBN-10 auf.
+    func testThoseCatalogueNumbersWouldPassTheCheckDigit() {
+        XCTAssertTrue(AmazonCover.isValidISBN10("1264340478"))
+        XCTAssertTrue(AmazonCover.isValidISBN10("136958542X"))
+    }
+
+    func testPlainISBNInIdentifierStillWorks() {
+        XCTAssertEqual(DNB.Record.firstISBN(in: "978-3-442-49404-0 kart. : EUR 16.00"), "9783442494040")
+        XCTAssertEqual(DNB.Record.firstISBN(in: "0-415-00820-4"), "0415008204")
+    }
+
     func testNoPrintEditionMeansNoISBN() {
         let xml = """
         <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/"><records>
