@@ -41,6 +41,39 @@ public enum AuthorMatch {
     }
 }
 
+/// Titel-Abgleich für Katalogtreffer. Der Autor allein belegt eine Ausgabe nicht:
+/// „The Fatal Conceit" von Hayek bekam so die ISBN der deutschen Ausgabe
+/// „Die verhängnisvolle Anmassung" — gleicher Verfasser, anderes Buch im Regal.
+///
+/// Der Katalogtitel trägt Originaltitel, Gattung und Verfasserangabe mit sich
+/// („[The fix] ; Exekution : Thriller / David Baldacci"), deshalb wird nicht auf
+/// Gleichheit geprüft, sondern ob der gesuchte Titel als **zusammenhängende Wortfolge**
+/// darin vorkommt.
+public enum TitleMatch {
+    public static func matches(_ stored: String, _ candidate: String) -> Bool {
+        let wanted = words(SearchTitle.simplify(stored))
+        let found = words(candidate)
+        guard !wanted.isEmpty, !found.isEmpty else { return false }
+        return contains(found, wanted)
+    }
+
+    private static func words(_ value: String) -> [String] {
+        value.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                      locale: Locale(identifier: "de_DE"))
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+    }
+
+    private static func contains(_ haystack: [String], _ needle: [String]) -> Bool {
+        guard needle.count <= haystack.count else { return false }
+        for start in 0...(haystack.count - needle.count)
+        where Array(haystack[start..<(start + needle.count)]) == needle {
+            return true
+        }
+        return false
+    }
+}
+
 /// Aus dem gespeicherten Titel den Teil machen, mit dem sich suchen lässt.
 /// DNB-Titel schleppen Ausgabevarianten und Untertitel mit:
 /// „[Kill for me, kill for you] ; Kill for me: Thriller: sie tötet …" → „Kill for me".
@@ -350,6 +383,17 @@ public enum DNB {
         public var title: String
         public var creators: [String]
         public var identifiers: [String]
+        public var formats: [String] = []
+
+        /// Tonträger tragen eine eigene ISBN und ein eigenes Cover — „Neid" von Arne Dahl
+        /// bekam im ersten Lauf `Neid : 8 CDs`. Der Rollenwächter half nicht: Hörbücher
+        /// führen den Autor ebenfalls als `[Verfasser]`.
+        public var isPrint: Bool {
+            let haystack = ([title] + formats).joined(separator: " ").lowercased()
+            let audio = ["hörbuch", "hoerbuch", " cd", "cds", "mp3", "lesung", "gelesen von",
+                         "tonträger", "dvd", "blu-ray", "audio"]
+            return !audio.contains { haystack.contains($0) }
+        }
 
         /// Erste gültige ISBN dieses Datensatzes. `urn:nbn:…` ist keine.
         public var isbn: String? {
@@ -390,13 +434,20 @@ public enum DNB {
         DublinCoreFields.records(data).map {
             Record(title: $0["title"]?.first ?? "",
                    creators: $0["creator"] ?? [],
-                   identifiers: $0["identifier"] ?? [])
+                   identifiers: $0["identifier"] ?? [],
+                   formats: $0["format"] ?? [])
         }
     }
 
-    /// ISBN aus einer Trefferliste — nur aus dem Datensatz, dessen Verfasser passt.
-    public static func isbn(from data: Data, author: String) -> String? {
-        records(data).first { $0.hasAuthor(author) && $0.isbn != nil }?.isbn
+    /// ISBN aus einer Trefferliste. Drei Wächter, jeder gegen einen echten Fehlgriff
+    /// des ersten Laufs über 174 Bücher: **Verfasser** (sonst erbt der Roman die ISBN
+    /// der Hörbuchbox), **Titel** (sonst bekommt „The Fatal Conceit" die ISBN der
+    /// deutschen Ausgabe) und **Druckausgabe** (sonst gewinnt der Tonträger, der den
+    /// Autor ebenfalls als Verfasser führt).
+    public static func isbn(from data: Data, title: String, author: String) -> String? {
+        records(data).first {
+            $0.hasAuthor(author) && TitleMatch.matches(title, $0.title) && $0.isPrint && $0.isbn != nil
+        }?.isbn
     }
 
     public static func parse(_ data: Data) -> BookMetadata? {
@@ -649,7 +700,7 @@ public actor MetadataLookup {
         guard !title.isEmpty, !author.isEmpty else { return nil }
         let (data, status) = try await client.get(DNB.searchURL(title: title, author: author))
         guard status == 200 else { return nil }
-        return DNB.isbn(from: data, author: author)
+        return DNB.isbn(from: data, title: title, author: author)
     }
 
     public func coverByTitle(title: String, author: String) async throws -> URL? {

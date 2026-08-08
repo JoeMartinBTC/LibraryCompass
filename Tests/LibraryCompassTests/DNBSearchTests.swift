@@ -72,27 +72,27 @@ final class DNBRecordTests: XCTestCase {
     }
 
     func testPicksTheISBNOfTheMatchingAuthor() {
-        XCTAssertEqual(DNB.isbn(from: Data(response.utf8), author: "Coben, Harlan"),
+        XCTAssertEqual(DNB.isbn(from: Data(response.utf8), title: "Der Junge aus dem Wald", author: "Coben, Harlan"),
                        "9783442494040")
     }
 
     /// Anti: Der Treffer mit passendem Titel, aber fremdem Verfasser, zählt nicht.
     func testRejectsRecordsOfAnotherAuthor() {
-        XCTAssertNil(DNB.isbn(from: Data(response.utf8), author: "Winslow, Don"))
+        XCTAssertNil(DNB.isbn(from: Data(response.utf8), title: "Der Junge aus dem Wald", author: "Winslow, Don"))
     }
 
     /// Anti: Ohne Verfasserrolle kein Beleg — sonst erbt der Roman das Hörbuch.
     func testNarratorAloneIsNotAMatch() {
-        XCTAssertNil(DNB.isbn(from: Data(response.utf8), author: "Bierstedt, Detlef"))
+        XCTAssertNil(DNB.isbn(from: Data(response.utf8), title: "Der Junge aus dem Wald", author: "Bierstedt, Detlef"))
     }
 
     /// Anti: falsche Prüfziffer wird verworfen, sonst zieht Amazon irgendeine Artikelnummer.
     func testRejectsISBNWithBrokenCheckDigit() {
         let broken = response.replacingOccurrences(of: "978-3-442-49404-0", with: "978-3-442-49404-1")
-        XCTAssertNil(DNB.isbn(from: Data(broken.utf8), author: "Coben, Harlan"))
+        XCTAssertNil(DNB.isbn(from: Data(broken.utf8), title: "Der Junge aus dem Wald", author: "Coben, Harlan"))
     }
 
     func testEmptyAuthorNeverMatches() {
-        XCTAssertNil(DNB.isbn(from: Data(response.utf8), author: ""))
+        XCTAssertNil(DNB.isbn(from: Data(response.utf8), title: "Der Junge aus dem Wald", author: ""))
     }
 }
