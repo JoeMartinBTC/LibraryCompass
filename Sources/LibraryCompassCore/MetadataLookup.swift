@@ -52,9 +52,32 @@ public enum AuthorMatch {
 public enum TitleMatch {
     public static func matches(_ stored: String, _ candidate: String) -> Bool {
         let wanted = words(SearchTitle.simplify(stored))
-        let found = words(candidate)
-        guard !wanted.isEmpty, !found.isEmpty else { return false }
-        return contains(found, wanted)
+        guard !wanted.isEmpty else { return false }
+        return titles(in: candidate).contains { startsWith(words($0), wanted) }
+    }
+
+    /// Die Titel, die einen Datensatz wirklich benennen: der Haupttitel und der
+    /// Originaltitel in eckigen Klammern (unter dem umbenannte Neuauflagen laufen).
+    ///
+    /// ⚠️ Ausdrücklich **nicht** der ganze Katalogtitel. Der schleppt Werbung mit:
+    /// „… : Thriller. - Der neue Thriller vom Autor der SPIEGEL-Bestseller THIRTEEN und
+    /// FIFTY FIFTY / Steve Cavanagh". Wer darin nach der Wortfolge sucht, hält die
+    /// Komplizin für „Fifty-Fifty" — am echten Bestand passiert.
+    static func titles(in raw: String) -> [String] {
+        var result: [String] = []
+        var rest = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if rest.hasPrefix("["), let close = rest.firstIndex(of: "]") {
+            result.append(String(rest[rest.index(after: rest.startIndex)..<close]))
+            rest = String(rest[rest.index(after: close)...])
+                .trimmingCharacters(in: CharacterSet(charactersIn: " ;·/"))
+        }
+        // Untertitel und Verfasserangabe abschneiden — dahinter beginnt der Ballast.
+        for separator in [" : ", " / ", ". - "] {
+            if let range = rest.range(of: separator) { rest = String(rest[..<range.lowerBound]) }
+        }
+        result.append(rest.trimmingCharacters(in: .whitespacesAndNewlines))
+        return result.filter { !$0.isEmpty }
     }
 
     private static func words(_ value: String) -> [String] {
@@ -64,13 +87,10 @@ public enum TitleMatch {
             .map(String.init)
     }
 
-    private static func contains(_ haystack: [String], _ needle: [String]) -> Bool {
-        guard needle.count <= haystack.count else { return false }
-        for start in 0...(haystack.count - needle.count)
-        where Array(haystack[start..<(start + needle.count)]) == needle {
-            return true
-        }
-        return false
+    /// Der gesuchte Titel muss **vorn** stehen, nicht irgendwo vorkommen.
+    private static func startsWith(_ haystack: [String], _ needle: [String]) -> Bool {
+        guard !needle.isEmpty, needle.count <= haystack.count else { return false }
+        return Array(haystack[0..<needle.count]) == needle
     }
 }
 

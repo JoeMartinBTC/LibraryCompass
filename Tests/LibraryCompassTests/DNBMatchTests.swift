@@ -142,6 +142,29 @@ final class DNBMatchTests: XCTestCase {
                        "9783442494040")
     }
 
+    /// 🔴 Vierter Fehlgriff, am echten Bestand gefunden: „Fifty-Fifty" von Cavanagh bekam
+    /// die ISBN der **Komplizin**. Deren Katalogtitel trägt eine Werbezeile mit —
+    /// „vom Autor der SPIEGEL-Bestseller THIRTEEN und FIFTY FIFTY" —, und die Suche nach
+    /// der Wortfolge *irgendwo* im Titel fand sie dort. Der Titel muss **vorn** stehen.
+    func testBlurbInsideACatalogTitleIsNotAMatch() {
+        let blurb = "[The accomplice] ; Die Komplizin – Ihr Mann ist ein Serienkiller : "
+            + "Thriller. - Der neue Thriller vom Autor der SPIEGEL-Bestseller THIRTEEN und "
+            + "FIFTY FIFTY / Steve Cavanagh"
+        XCTAssertFalse(TitleMatch.matches("Fifty-Fifty", blurb))
+    }
+
+    func testRealTitleAtTheFrontStillMatches() {
+        XCTAssertTrue(TitleMatch.matches("Fifty-Fifty",
+            "Fifty-Fifty : der fünfte Fall für Eddie Flynn : Thriller / Steve Cavanagh"))
+    }
+
+    /// Der Originaltitel in eckigen Klammern zählt ebenfalls — unter ihm laufen
+    /// umbenannte Neuauflagen desselben Werks.
+    func testBracketedOriginalTitleCounts() {
+        XCTAssertTrue(TitleMatch.matches("Nie wieder keine Ahnung: Politik, Wirtschaft und Weltgeschehen",
+            "[Nie wieder keine Ahnung] ; Das Buch, das (fast) alles erklärt : Sachbuch"))
+    }
+
     func testNoPrintEditionMeansNoISBN() {
         let xml = """
         <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/"><records>
