@@ -43,6 +43,7 @@ final class LibraryCompassUITests: XCTestCase {
         XCTAssertTrue(detail.buttons["btn.star4"].waitForExistence(timeout: 30), "Detail-Panel fehlt")
         XCTAssertTrue(detail.buttons["btn.today"].exists, "Taste „Heute“ fehlt")
         XCTAssertTrue(detail.buttons["btn.closeDetail"].exists, "Schließen-Knopf fehlt")
+        XCTAssertTrue(detail.buttons["btn.deleteBook"].exists, "Löschknopf fehlt")
         detail.terminate()
 
         let empty = launchedApp(state: "empty")

@@ -141,6 +141,24 @@ final class AppModel {
         didEdit()
     }
 
+    // MARK: Löschen
+
+    /// Buch, dessen Löschung noch bestätigt werden muss. `nil` heißt: keine Rückfrage offen.
+    var pendingDeletion: Book?
+
+    /// Entfernt einen Eintrag aus dem Bestand.
+    ///
+    /// Die Cover-Datei bleibt liegen. Der Bestand führt Dubletten desselben Buchs, und
+    /// zwei Einträge können sich eine Bilddatei teilen — wer sie mitlöscht, nimmt dem
+    /// verbliebenen Eintrag sein Cover. Eine Karteileiche im Ordner ist der billigere Fehler.
+    func delete(_ book: Book) {
+        if selection?.persistentModelID == book.persistentModelID { selection = nil }
+        if pendingDeletion?.persistentModelID == book.persistentModelID { pendingDeletion = nil }
+        context.delete(book)
+        try? context.save()
+        reload()
+    }
+
     // MARK: Buch per ISBN anlegen
 
     @discardableResult

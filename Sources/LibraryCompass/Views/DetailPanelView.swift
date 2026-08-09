@@ -38,6 +38,8 @@ struct DetailPanelView: View {
                         .tabularNums()
                         .foregroundStyle(lc.text3)
                         .padding(.top, 2)
+
+                    deleteButton
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 2)
@@ -53,6 +55,42 @@ struct DetailPanelView: View {
         }
         .overlay(alignment: .leading) {
             Rectangle().fill(lc.brd).frame(width: 1)
+        }
+    }
+
+    /// Löschen ist der einzige Schritt in dieser App, den kein zweiter Klick rückgängig
+    /// macht — deshalb als einziger mit Rückfrage, und die Rückfrage nennt den Titel.
+    private var deleteButton: some View {
+        Button {
+            model.pendingDeletion = book
+        } label: {
+            HStack(spacing: 6) {
+                LineSymbol(name: "trash", size: 12, weight: .medium)
+                Text("Buch löschen")
+            }
+            .lcType(.caption)
+            .foregroundStyle(lc.pink)
+            .frame(maxWidth: .infinity)
+            .frame(height: Metrics.controlPanel)
+            .overlay {
+                RoundedRectangle(cornerRadius: Radius.m, style: .continuous)
+                    .strokeBorder(lc.pink.opacity(0.45), lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, Space.s3)
+        .accessibilityIdentifier("btn.deleteBook")
+        .confirmationDialog("„\(book.title.isEmpty ? "Ohne Titel" : book.title)“ löschen?",
+                            isPresented: Binding(
+                                get: { model.pendingDeletion?.persistentModelID == book.persistentModelID },
+                                set: { if !$0 { model.pendingDeletion = nil } }),
+                            titleVisibility: .visible) {
+            Button("Löschen", role: .destructive) { model.delete(book) }
+                .accessibilityIdentifier("btn.confirmDelete")
+            Button("Abbrechen", role: .cancel) { model.pendingDeletion = nil }
+        } message: {
+            Text("Bewertung und Kommentar gehen mit verloren. Das lässt sich nicht rückgängig machen.")
         }
     }
 
