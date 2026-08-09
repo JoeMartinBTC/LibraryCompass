@@ -61,6 +61,23 @@ struct ISBNSheet: View {
                     .onSubmit(add)
                     .accessibilityIdentifier("field.isbn")
 
+                if let message = model.lookupMessage {
+                    Text(message)
+                        .lcType(.captionS)
+                        .foregroundStyle(lc.pink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("lbl.isbnHint")
+                }
+
+                // Erscheint erst, wenn die Eingabe keine ISBN war — E-Books und
+                // Selbstverlagstitel haben oft nur eine Amazon-Kennung.
+                if model.needsManualEntry {
+                    VStack(alignment: .leading, spacing: 8) {
+                        plainField("Titel", text: $model.manualTitle, id: "field.manualTitle")
+                        plainField("Verfasser", text: $model.manualAuthor, id: "field.manualAuthor")
+                    }
+                }
+
                 HStack(spacing: 9) {
                     // Zweiter Weg zum selben Ziel: Strichcode statt Tippen.
                     Button {
@@ -110,14 +127,37 @@ struct ISBNSheet: View {
         }
     }
 
+    private func plainField(_ label: String, text: Binding<String>, id: String) -> some View {
+        TextField(label, text: text)
+            .textFieldStyle(.plain)
+            .font(.system(size: 14))
+            .foregroundStyle(lc.text)
+            .padding(.horizontal, 13)
+            .frame(height: 40)
+            .glass(lc.glass, radius: Radius.l, border: lc.brd2)
+            .onSubmit(add)
+            .accessibilityIdentifier(id)
+    }
+
     private func add() {
+        if model.needsManualEntry {
+            guard model.addBookManually(title: model.manualTitle, author: model.manualAuthor) != nil else { return }
+            close()
+            return
+        }
         guard !model.isbnInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        model.addBook(isbn: model.isbnInput)
+        // Bleibt der Dialog offen, war die Eingabe keine ISBN — dann steht jetzt die
+        // Rückfrage nach Titel und Verfasser darin, und Schließen wäre Datenverlust.
+        guard model.addBook(isbn: model.isbnInput) != nil else { return }
         close()
     }
 
     private func close() {
         model.isbnInput = ""
+        model.manualTitle = ""
+        model.manualAuthor = ""
+        model.needsManualEntry = false
+        model.lookupMessage = nil
         model.dialog = nil
     }
 }

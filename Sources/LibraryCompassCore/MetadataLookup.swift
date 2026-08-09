@@ -38,6 +38,54 @@ public enum ISBN {
         }
         return core + String((10 - sum % 10) % 10)
     }
+
+    /// Trägt diese Eingabe überhaupt eine ISBN?
+    ///
+    /// `normalized` wirft alle Buchstaben außer „X" weg. Bei einer Amazon-Kennung wie
+    /// `B0BHG35KD6` bleibt davon `0356` übrig — und der Eintrag bekommt eine ISBN, die es
+    /// nicht gibt, samt aussichtslosem Nachschlagen. Gemeldet vom Nutzer am 2026-08-09 an
+    /// „Die Killerin — Isabella Rose". Eine Eingabe, die keine ISBN ist, muss als solche
+    /// erkannt werden, statt still zu Bruchstücken zu zerfallen.
+    public static func isPlausible(_ raw: String) -> Bool {
+        let value = normalized(raw)
+        if value.count == 10 { return AmazonCover.isValidISBN10(value) }
+        if value.count == 13 { return AmazonCover.isValidISBN13(value) }
+        return false
+    }
+}
+
+/// Amazons eigene Kennungen — ASIN und die URLs, in denen sie stecken.
+///
+/// E-Books und Selbstverlagstitel haben oft **gar keine ISBN**, nur eine ASIN. Sie ist
+/// keine ISBN und darf auch nicht so behandelt werden: der Bildendpunkt kennt sie nicht
+/// (gemessen 2026-08-08 an `B0GNS692YT` → 43 Byte), und kein Katalog schlägt sie nach.
+/// Erkannt wird sie trotzdem — damit die App sagen kann, was los ist, statt zu raten.
+public enum AmazonReference {
+
+    /// Eine ASIN ist zehnstellig, alphanumerisch und beginnt bei Büchern mit „B".
+    /// Zehnstellige reine Ziffernfolgen bleiben ausgenommen — das sind ISBN-10.
+    public static func isASIN(_ raw: String) -> Bool {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard value.count == 10, value.hasPrefix("B") else { return false }
+        return value.allSatisfy { $0.isNumber || ($0.isLetter && $0.isASCII) }
+    }
+
+    /// Zieht die Kennung aus einer eingefügten Amazon-Adresse: `/dp/<kennung>` oder
+    /// `/gp/product/<kennung>`. Ergebnis kann eine ASIN **oder** eine ISBN-10 sein —
+    /// beim Einfügen einer Produktseite ist beides üblich.
+    public static func identifier(inURL raw: String) -> String? {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.lowercased().contains("amazon.") else { return nil }
+        let parts = text.split(whereSeparator: { $0 == "/" || $0 == "?" || $0 == "&" })
+        for (index, part) in parts.enumerated() where part == "dp" || part == "product" {
+            guard index + 1 < parts.count else { continue }
+            let candidate = String(parts[index + 1]).uppercased()
+            if candidate.count == 10, candidate.allSatisfy({ $0.isNumber || ($0.isLetter && $0.isASCII) }) {
+                return candidate
+            }
+        }
+        return nil
+    }
 }
 
 /// Autor-Abgleich für den Titelsuche-Fallback (BUILD-HANDOVER §4/§9).

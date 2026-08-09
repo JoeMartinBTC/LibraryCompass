@@ -161,10 +161,29 @@ final class AppModel {
 
     // MARK: Buch per ISBN anlegen
 
+    /// Titel und Verfasser für ein Buch, das keine ISBN hat.
+    var manualTitle = ""
+    var manualAuthor = ""
+    /// Steht auf `true`, wenn die Eingabe keine ISBN war — dann fragt der Dialog nach
+    /// Titel und Verfasser, statt den Eintrag mit einer erfundenen ISBN anzulegen.
+    var needsManualEntry = false
+
     @discardableResult
     func addBook(isbn rawISBN: String) -> Book? {
-        let isbn = rawISBN.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !isbn.isEmpty else { return nil }
+        let input = rawISBN.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return nil }
+
+        // Eine eingefügte Amazon-Adresse trägt die Kennung im Pfad; sie kann eine ISBN-10
+        // sein (dann geht es normal weiter) oder eine ASIN (dann gibt es keine ISBN).
+        let isbn = AmazonReference.identifier(inURL: input) ?? input
+
+        guard ISBN.isPlausible(isbn) else {
+            needsManualEntry = true
+            lookupMessage = AmazonReference.isASIN(isbn)
+                ? "\(isbn) ist eine Amazon-Kennung, keine ISBN — dieses Buch hat keine. Titel und Verfasser eintragen."
+                : "„\(input)“ ist keine gültige ISBN. Titel und Verfasser eintragen."
+            return nil
+        }
 
         let normalized = ISBN.normalized(isbn)
 
@@ -184,6 +203,34 @@ final class AppModel {
         reload()
         selection = book
         Task { await fillMetadata(for: book) }
+        return book
+    }
+
+    /// Legt ein Buch ohne ISBN an — für E-Books und Selbstverlagstitel, die keine haben.
+    /// Das Cover kann später nur über die Titelsuche kommen, und die braucht den
+    /// Verfasser als Anker; ohne ihn wird kein Eintrag angelegt.
+    @discardableResult
+    func addBookManually(title rawTitle: String, author rawAuthor: String) -> Book? {
+        let title = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let author = rawAuthor.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            lookupMessage = "Ohne Titel lässt sich das Buch nicht anlegen."
+            return nil
+        }
+        guard !author.isEmpty else {
+            lookupMessage = "Ohne Verfasser findet die Titelsuche später kein Cover — bitte eintragen."
+            return nil
+        }
+
+        let book = NewBook.make(isbn: "")
+        book.title = title
+        book.author = author
+        context.insert(book)
+        try? context.save()
+        reload()
+        selection = book
+        needsManualEntry = false
+        lookupMessage = nil
         return book
     }
 

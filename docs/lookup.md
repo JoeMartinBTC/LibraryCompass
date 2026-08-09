@@ -137,3 +137,27 @@ Cover-Treffer sind unabhängige Ereignisse.
 Was **nach** dem gefundenen Bild passiert — Dateiname je Buch (`CoverKey`), Ablage,
 Wiederaufnahme, Vollständigkeitsnachweis und die zwei Fehler, die am 1.780er-Bestand
 sichtbar wurden — steht in **[covers.md](covers.md)**.
+
+## Amazon identifiers are not ISBNs
+
+Reported 2026-08-09: „Die Killerin — Isabella Rose" could not be added. Amazon lists it as
+`B0BHG35KD6`, an ASIN. `ISBN.normalized` keeps only digits and „X", so `B0BHG35KD6` became
+`0356` — the entry got an ISBN that does not exist, and every lookup for it was doomed.
+
+Two guards now stand in front of that:
+
+- `ISBN.isPlausible` requires ten or thirteen digits **with a valid check digit**. Anything
+  else is not an ISBN and is not treated as one.
+- `AmazonReference` recognises an ASIN (ten characters, starts with „B") and pulls the
+  identifier out of a pasted product URL (`/dp/…`, `/gp/product/…`). A product page may
+  carry either an ISBN-10 or an ASIN, so the extracted value still goes through
+  `isPlausible`.
+
+E-books and self-published titles frequently have **no ISBN at all** — the Amazon image
+endpoint does not know ASINs either (measured 2026-08-08: `B0GNS692YT` → 43 bytes), and no
+catalogue looks them up. So the dialog asks for title and author instead and creates the
+entry without an ISBN.
+
+The author is required on that path, deliberately. Without an ISBN the only remaining cover
+source is the title search, and that search needs the author as its anchor — a title alone
+attaches whatever happens to match. „Flashback" returned nine different books this way.
