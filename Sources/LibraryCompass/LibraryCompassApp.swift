@@ -57,6 +57,13 @@ enum LaunchOptions {
     /// `--fetch-isbns` schlägt fehlende ISBNs über Titel und Verfasser nach und beendet die App.
     static var fetchesISBNs: Bool { CommandLine.arguments.contains("--fetch-isbns") }
 
+    /// `--apply-covers <datei>` trägt von Hand geprüfte Cover ein und beendet die App.
+    static var applyCoversPath: String? {
+        guard let index = CommandLine.arguments.firstIndex(of: "--apply-covers"),
+              CommandLine.arguments.count > index + 1 else { return nil }
+        return CommandLine.arguments[index + 1]
+    }
+
     /// `--mark-read` trägt bei allen Büchern ohne Gelesen-Datum das Erfassungsdatum ein.
     static var marksRead: Bool { CommandLine.arguments.contains("--mark-read") }
 
@@ -138,6 +145,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
+        if let path = LaunchOptions.applyCoversPath {
+            Task { @MainActor in
+                exit(await Self.applyCovers(from: path) ? 0 : 1)
+            }
+            return
+        }
+
         if LaunchOptions.fetchesCovers || LaunchOptions.fetchesISBNs {
             Task { @MainActor in
                 let complete = LaunchOptions.fetchesISBNs
@@ -192,6 +206,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Ein Pflegelauf darf nicht daran sterben, dass jemand das Fenster schließt.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         !LaunchOptions.fetchesCovers && !LaunchOptions.fetchesISBNs
+            && LaunchOptions.applyCoversPath == nil
+    }
+
+    /// Trägt von Hand geprüfte Cover ein. Jede Zeile nennt ein Buch; ein leeres zweites
+    /// Feld nimmt ein falsches Cover zurück.
+    @MainActor
+    static func applyCovers(from path: String) async -> Bool {
+        guard let container = try? LibraryStore.defaultContainer() else {
+            FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
+            return false
+        }
+        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
+            FileHandle.standardError.write(Data("Zuweisungsdatei nicht lesbar: \(path)\n".utf8))
+            return false
+        }
+        do {
+            let report = try await CoverAssignment.apply(CoverAssignment.parse(text),
+                                                         context: ModelContext(container)) { done, total, title in
+                print("[\(done)/\(total)] \(title)")
+                fflush(stdout)
+            }
+            for problem in report.problems { print("übergangen — \(problem)") }
+            print(report.summary)
+            fflush(stdout)
+            return report.isComplete
+        } catch {
+            FileHandle.standardError.write(Data("ABBRUCH — Zuweisung gescheitert: \(error)\n".utf8))
+            return false
+        }
     }
 
     /// Schlägt fehlende ISBNs nach. Erst danach greift für diese Bücher die

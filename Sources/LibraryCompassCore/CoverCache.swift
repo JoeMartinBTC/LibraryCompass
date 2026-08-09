@@ -64,6 +64,26 @@ public actor CoverCache {
         return name
     }
 
+    /// Legt ein bereits vorliegendes Bild ab — für von Hand geprüfte Cover.
+    ///
+    /// Derselbe Weg wie `download`, nur ohne Netz: gleicher Mindestgrößen-Test, gleicher
+    /// Platzhalter-Wächter, gleicher Dateistamm. Ein zweiter Weg in denselben Ordner, der
+    /// diese Prüfungen nicht mitnimmt, hebelt sie für alle auf.
+    public func store(_ data: Data,
+                      stem: String,
+                      identity: String? = nil,
+                      extension ext: String = "jpg") async throws -> String? {
+        guard !stem.isEmpty, Self.isUsableImage(data) else { return nil }
+        let owner = identity ?? stem
+        let digest = Self.digest(of: data)
+        if let existing = try ownerOfImage(digest), existing != owner { return nil }
+
+        let name = "\(stem).\(ext.isEmpty ? "jpg" : ext)"
+        try data.write(to: try directory().appendingPathComponent(name), options: .atomic)
+        knownImages[digest] = owner
+        return name
+    }
+
     /// Wem gehört dieses Bild bereits? Der Index wird beim ersten Bedarf aus dem
     /// Cache-Ordner aufgebaut, damit der Wächter auch Bilder früherer Läufe kennt.
     private func ownerOfImage(_ digest: String) throws -> String? {

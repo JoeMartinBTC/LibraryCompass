@@ -200,3 +200,43 @@ Not every gap is a defect.
 
 A missing cover is honest. A wrong one is not, which is why every fallback stage is
 guarded and no stage is allowed to guess.
+
+## Assigning a checked cover by hand
+
+The automatic pass decides on its own and is sometimes wrong. On 2026-08-09 it fetched
+seven covers and three of them showed a different work — visible only by looking at the
+pictures, never in the counters. So the last stage of the chain is a person, and that
+person needs a way into the store:
+
+```bash
+LibraryCompass --apply-covers assignment.tsv
+```
+
+One line per book, tab separated. The key is the entry's ISBN, or — for books without one
+— the title hash from `CoverKey.stem`. An empty second field withdraws a wrong cover:
+
+```
+9783958905733	/path/to/checked.jpg     ← set this cover
+3893170065	                             ← remove the cover
+```
+
+The same guards apply as in the automatic pass: minimum size, and the placeholder guard
+that refuses to give one image to two different books. A key that matches no book, or more
+than one, is skipped and the run reports `ABBRUCH` with exit 1 — it never guesses which
+book was meant.
+
+The image file of a withdrawn cover stays on disk. The library holds duplicates of the
+same book, two entries can share one picture, and deleting it would strip the cover from
+the entry that kept it.
+
+## Two limits found on 2026-08-09
+
+**A sibling edition is not reachable from the stored ISBN.** „Wie man einen Drachen tötet"
+was stored under the audiobook's ISBN; the print edition has a different one, and the DNB
+does not link the two records. Only a **title search** (`tit=` plus `per=`, or K10plus,
+or Open Library) finds the siblings, and each sibling brings its own ISBN to try.
+
+**The Amazon ISBN endpoint is not always edition-exact.** Under the correct ISBN
+`3548229077` („Depesche aus dem Jenseits", Ullstein) it serves the cover of a different
+volume in the same series. The endpoint remains first choice, but its answer is evidence,
+not proof — which is what the human check is for.
