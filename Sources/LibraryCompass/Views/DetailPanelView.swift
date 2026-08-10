@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import LibraryCompassCore
 
 /// Detail-Panel rechts, 352 breit (README §5.9). Chips ohne Genre.
@@ -7,14 +8,14 @@ struct DetailPanelView: View {
     @Bindable var model: AppModel
     let book: Book
 
+    @State private var isTargeted = false
+
     var body: some View {
         VStack(spacing: 0) {
             header
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: Space.s3) {
-                    CoverView(book: book, width: 158, radius: Radius.window)
-                        .lcShadow(lc.shadowSheet)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    coverWell
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(book.title.isEmpty ? "Ohne Titel" : book.title)
@@ -56,6 +57,107 @@ struct DetailPanelView: View {
         .overlay(alignment: .leading) {
             Rectangle().fill(lc.brd).frame(width: 1)
         }
+    }
+
+    /// Das Cover als Ablage: ein Bild aus dem Browser hierher ziehen setzt es ein.
+    ///
+    /// Für 96 Bücher gibt es kein Bild bei einer Quelle, die die App abfragen darf —
+    /// alte deutsche Ausgaben und Selbstverlagstitel. Sichtbar sind sie trotzdem, nur
+    /// eben dort, wo ein Mensch nachsehen darf und ein Programm nicht. Also nimmt die
+    /// App das Bild von ihm entgegen, statt so zu tun, als gäbe es keines.
+    private var coverWell: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            CoverView(book: book, width: 158, radius: Radius.window)
+                .lcShadow(lc.shadowSheet)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.window, style: .continuous)
+                        .strokeBorder(lc.accent, lineWidth: 2)
+                        .opacity(isTargeted ? 1 : 0)
+                }
+                .overlay(alignment: .bottom) {
+                    if isTargeted {
+                        Text("Bild hier ablegen")
+                            .lcType(.captionS)
+                            .foregroundStyle(lc.accentInk)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(lc.accent))
+                            .padding(.bottom, 8)
+                    }
+                }
+                .onDrop(of: [.image, .fileURL, .url], isTargeted: $isTargeted) { providers in
+                    receive(providers)
+                }
+                .accessibilityIdentifier("well.cover")
+
+            HStack(spacing: 6) {
+                smallButton("Suchen", symbol: "magnifyingglass", id: "btn.searchCover") {
+                    model.searchCoverOnline(for: book)
+                }
+                smallButton("Einfügen", symbol: "doc.on.clipboard", id: "btn.pasteCover") {
+                    Task { await model.pasteCover(for: book) }
+                }
+            }
+            .frame(width: 158)
+
+            if let message = model.coverMessage {
+                Text(message)
+                    .lcType(.captionS)
+                    .foregroundStyle(lc.pink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func smallButton(_ title: String, symbol: String, id: String,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                LineSymbol(name: symbol, size: 11)
+                Text(title)
+            }
+            .lcType(.captionS)
+            .foregroundStyle(lc.text2)
+            .frame(maxWidth: .infinity)
+            .frame(height: 26)
+            .overlay {
+                RoundedRectangle(cornerRadius: Radius.m, style: .continuous)
+                    .strokeBorder(lc.brd, lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(id)
+    }
+
+    /// Ein gezogenes Bild kommt je nach Herkunft als Datei, als Adresse oder als
+    /// Bilddaten an — der Browser entscheidet das, nicht die App.
+    private func receive(_ providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first else { return false }
+        let target = book.persistentModelID
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url, let data = try? Data(contentsOf: url) else { return }
+                Task { @MainActor in await model.setCover(from: data, forBookWith: target) }
+            }
+            return true
+        }
+        if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+            provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                guard let data else { return }
+                Task { @MainActor in await model.setCover(from: data, forBookWith: target) }
+            }
+            return true
+        }
+        // Aus dem Browser gezogen kommt oft nur die Adresse — dann wird sie geladen.
+        // Das ist der Nutzer, der ein Bild holt, das er vor sich sieht.
+        _ = provider.loadObject(ofClass: URL.self) { url, _ in
+            guard let url, let data = try? Data(contentsOf: url) else { return }
+            Task { @MainActor in await model.setCover(from: data, forBookWith: target) }
+        }
+        return true
     }
 
     /// Löschen ist der einzige Schritt in dieser App, den kein zweiter Klick rückgängig

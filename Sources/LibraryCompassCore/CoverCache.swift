@@ -88,6 +88,16 @@ public actor CoverCache {
             .write(to: try rejectionFile(), atomically: true, encoding: .utf8)
     }
 
+    /// Hebt eine Sperre auf — wer ein Bild bewusst zuweist, hat seine frühere
+    /// Ablehnung damit widerrufen.
+    private func unreject(_ data: Data, identity: String) throws {
+        try loadRejections()
+        let entry = "\(identity)\t\(Self.digest(of: data))"
+        guard rejected.remove(entry) != nil else { return }
+        try (rejected.sorted().joined(separator: "\n") + "\n")
+            .write(to: try rejectionFile(), atomically: true, encoding: .utf8)
+    }
+
     /// Wurde dieses Bild für dieses Buch schon einmal von Hand verworfen?
     public func isRejected(_ data: Data, identity: String) throws -> Bool {
         try loadRejections()
@@ -110,15 +120,32 @@ public actor CoverCache {
     /// Derselbe Weg wie `download`, nur ohne Netz: gleicher Mindestgrößen-Test, gleicher
     /// Platzhalter-Wächter, gleicher Dateistamm. Ein zweiter Weg in denselben Ordner, der
     /// diese Prüfungen nicht mitnimmt, hebelt sie für alle auf.
+    /// - Parameter trusted: Ein Mensch hat das Bild angesehen und zugewiesen.
+    ///
+    ///   Dann gelten die Wächter nicht. Sie ersetzen ein Urteil, das hier bereits
+    ///   vorliegt: der Platzhalter-Wächter schließt aus dem *Verdacht*, zwei gleiche
+    ///   Bilder seien ein Verlagsplatzhalter, und die Sperrliste hält eine frühere
+    ///   automatische Fehlzuordnung fest. Beides ist schwächer als jemand, der das Cover
+    ///   vor Augen hat. Eine bestehende Sperre für dieses Buch wird dabei aufgehoben —
+    ///   sonst müsste man sie an anderer Stelle von Hand pflegen.
+    ///
+    ///   Die Mindestgröße bleibt auch hier: eine 43-Byte-Fehlanzeige ist kein Bild,
+    ///   egal wer sie zuweist.
     public func store(_ data: Data,
                       stem: String,
                       identity: String? = nil,
-                      extension ext: String = "jpg") async throws -> String? {
+                      extension ext: String = "jpg",
+                      trusted: Bool = false) async throws -> String? {
         guard !stem.isEmpty, Self.isUsableImage(data) else { return nil }
         let owner = identity ?? stem
-        if try isRejected(data, identity: owner) { return nil }
+        if trusted {
+            try unreject(data, identity: owner)
+        } else {
+            if try isRejected(data, identity: owner) { return nil }
+            let digest = Self.digest(of: data)
+            if let existing = try ownerOfImage(digest), existing != owner { return nil }
+        }
         let digest = Self.digest(of: data)
-        if let existing = try ownerOfImage(digest), existing != owner { return nil }
 
         let name = "\(stem).\(ext.isEmpty ? "jpg" : ext)"
         try data.write(to: try directory().appendingPathComponent(name), options: .atomic)

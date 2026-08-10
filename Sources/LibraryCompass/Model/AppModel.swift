@@ -141,6 +141,82 @@ final class AppModel {
         didEdit()
     }
 
+    // MARK: Cover von Hand
+
+    /// Rückmeldung zum letzten von Hand eingesetzten Cover.
+    var coverMessage: String?
+
+    /// Nimmt ein Bild an, das ein Mensch ausgesucht hat — aus dem Browser gezogen oder
+    /// aus der Zwischenablage.
+    ///
+    /// Für 96 Bücher gibt es kein Cover bei einer Quelle, die die App abfragen darf:
+    /// alte deutsche Ausgaben, die kein freier Katalog je erfasst hat, und
+    /// Selbstverlagstitel ohne ISBN-10. Sichtbar sind die Bilder trotzdem — nur eben
+    /// dort, wo ein Mensch nachsehen darf und ein Programm nicht.
+    @discardableResult
+    func setCover(from data: Data, for book: Book) async -> Bool {
+        guard CoverCache.isUsableImage(data) else {
+            coverMessage = "Das sind nur \(data.count) Byte — kein Bild."
+            return false
+        }
+        guard let stem = CoverKey.stem(isbn: book.isbn, title: book.title, author: book.author) else {
+            coverMessage = "Das Buch führt weder ISBN noch Titel."
+            return false
+        }
+        let identity = CoverKey.identity(isbn: book.isbn, title: book.title, author: book.author)
+        guard let name = try? await CoverCache.shared.store(data, stem: stem, identity: identity,
+                                                           trusted: true) else {
+            coverMessage = "Das Bild ließ sich nicht ablegen."
+            return false
+        }
+        book.coverPath = name
+        coverMessage = nil
+        didEdit()
+        return true
+    }
+
+    /// Wie `setCover(from:for:)`, aber über die Kennung des Buchs.
+    ///
+    /// Ein gezogenes Bild kommt aus einem Rückruf des Systems, also von einem anderen
+    /// Ausführungsstrang. `Book` gehört dem Hauptstrang und darf ihn nicht verlassen —
+    /// die Kennung schon.
+    @discardableResult
+    func setCover(from data: Data, forBookWith id: PersistentIdentifier) async -> Bool {
+        guard let book = books.first(where: { $0.persistentModelID == id }) else { return false }
+        return await setCover(from: data, for: book)
+    }
+
+    /// Bild aus der Zwischenablage — der zweite Weg neben dem Ziehen.
+    @discardableResult
+    func pasteCover(for book: Book) async -> Bool {
+        let board = NSPasteboard.general
+        // Erst die Datei-URL: ein aus dem Browser gesichertes Bild landet so auf dem
+        // Board und behält seine Auflösung. `NSImage` aus dem Board ist oft die
+        // heruntergerechnete Bildschirmfassung.
+        if let urls = board.readObjects(forClasses: [NSURL.self]) as? [URL],
+           let url = urls.first, let data = try? Data(contentsOf: url) {
+            return await setCover(from: data, for: book)
+        }
+        if let image = NSImage(pasteboard: board),
+           let tiff = image.tiffRepresentation,
+           let data = NSBitmapImageRep(data: tiff)?.representation(using: .jpeg,
+                                                                  properties: [.compressionFactor: 0.9]) {
+            return await setCover(from: data, for: book)
+        }
+        coverMessage = "In der Zwischenablage ist kein Bild."
+        return false
+    }
+
+    /// Öffnet Titel und Verfasser als Suche im Browser des Nutzers.
+    ///
+    /// Die App fragt Amazon **nicht** selbst ab: `amazon.de/robots.txt` schließt
+    /// automatisierte Zugriffe aus. Ein Mensch, der nach seinen eigenen Büchern sucht,
+    /// ist davon nicht betroffen — deshalb öffnet dieser Knopf nur die Seite.
+    func searchCoverOnline(for book: Book) {
+        guard let url = CoverSearch.url(title: book.title, author: book.author) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     // MARK: Löschen
 
     /// Buch, dessen Löschung noch bestätigt werden muss. `nil` heißt: keine Rückfrage offen.

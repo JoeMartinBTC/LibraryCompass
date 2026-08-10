@@ -279,3 +279,38 @@ maintain by hand is a rule that gets forgotten.
 
 The rejection binds an **image to a book**, not a book. Assigning a different — correct —
 cover to the same book stays possible, which is the whole point of withdrawing the wrong one.
+
+## The manual path — when a person may look and a program may not
+
+96 books have no cover at any source the app is allowed to query: older German editions no
+free catalogue ever recorded, and self-published titles without an ISBN-10. The pictures do
+exist — `amazon.de/robots.txt` simply rules out automated access, and names Claude agents
+explicitly:
+
+```
+User-agent: ClaudeBot
+Disallow: /
+```
+
+That rule binds the program, not its user. Someone searching for their own books is not a
+bot. So the app stops pretending the picture does not exist and takes it from them instead:
+
+- **Drop an image onto the cover** in the detail panel — from the browser, the Finder, or
+  as a plain URL. The app handles all three, because which one arrives is the browser's
+  decision, not the app's.
+- **Paste** from the clipboard. A file URL is preferred over `NSImage`: the latter is often
+  the downscaled screen version.
+- **Search** opens title and author as a book search in the user's own browser. One click
+  instead of typing.
+
+### A hand-assigned cover overrides the guards
+
+`store(…, trusted: true)` skips the duplicate guard and the rejection list. Both replace a
+judgement that is already present here: the duplicate guard infers from *suspicion* that two
+identical images are a publisher placeholder, and the rejection list records an earlier
+automatic mistake. Someone looking at the cover knows better than either. An existing
+rejection for that book is lifted rather than merely bypassed — otherwise it would strike
+again on the next run.
+
+The minimum size still applies. A 43-byte no-answer is not an image no matter who assigns
+it, and dragging from a browser produces exactly that often enough.
