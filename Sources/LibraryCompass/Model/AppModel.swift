@@ -29,10 +29,26 @@ final class AppModel {
     private(set) var stats = LibraryStats(books: [Book]())
     private(set) var recentlyRead: [Book] = []
 
+    // MARK: Lücken aus der Autorbibliografie
+    //
+    // Ein eigener Topf, der den Bestand nicht anfasst: `books` bleibt der Bestand,
+    // `gapRows` ist die Werkliste, die dem Regal fehlt. Kein Zähler dieser Klasse
+    // mischt die beiden.
+
+    private(set) var gapRows: [MissingBook] = []
+    /// Zeigt die Mittelspalte gerade den Lückenkorb statt des Bestands?
+    var showsGaps = false {
+        didSet { if showsGaps { selection = nil }; resetPaging() }
+    }
+    /// Läuft gerade ein Bibliografie-Lauf, und was hat er zuletzt gemeldet?
+    var bibliographyRunning = false
+    var bibliographyMessage: String?
+
     // MARK: Auswertung
 
     var filter: LibraryFilter = .alle {
-        didSet { resetPaging(); rebuild() }
+        // Ein Filter meint den Bestand — also verlässt die Ansicht den Lückenkorb.
+        didSet { showsGaps = false; resetPaging(); rebuild() }
     }
     var search: String = "" {
         didSet { resetPaging(); rebuild() }
@@ -87,7 +103,23 @@ final class AppModel {
     /// Bestand frisch aus dem Store lesen und alles Abgeleitete neu rechnen.
     func reload() {
         books = (try? context.fetch(FetchDescriptor<Book>())) ?? []
+        reloadGaps()
         rebuild()
+    }
+
+    /// Der Lückenkorb wird getrennt gelesen — `FetchDescriptor<Book>` kennt ihn nicht.
+    func reloadGaps() {
+        let all = (try? context.fetch(FetchDescriptor<MissingBook>())) ?? []
+        gapRows = all.sorted { a, b in
+            switch BookQuery.compare(a.author, b.author) {
+            case .orderedAscending: true
+            case .orderedDescending: false
+            case .orderedSame:
+                (a.year ?? Int.max) != (b.year ?? Int.max)
+                    ? (a.year ?? Int.max) < (b.year ?? Int.max)
+                    : BookQuery.compare(a.title, b.title) == .orderedAscending
+            }
+        }
     }
 
     /// Nach einer Bearbeitung: sichern und Ableitungen aktualisieren.
@@ -118,10 +150,25 @@ final class AppModel {
         limit += Metrics.pageSize
     }
 
-    var screenTitle: String { filter.title }
+    /// Sichtbarer Ausschnitt des Lückenkorbs — gleiche Blockgröße wie beim Bestand.
+    var visibleGapRows: ArraySlice<MissingBook> {
+        gapRows.prefix(limit)
+    }
+
+    func loadMoreGapsIfNeeded() {
+        guard limit < gapRows.count else { return }
+        limit += Metrics.pageSize
+    }
+
+    var screenTitle: String { showsGaps ? "Lücken" : filter.title }
 
     var countLine: String {
-        "\(LCFormat.number(rows.count)) von \(LCFormat.number(books.count)) Titeln · \(sort.title)"
+        // Die Lücken werden **gegen sich selbst** gezählt, nie gegen den Bestand: sie
+        // gehören ihm nicht an, und eine Zeile „12 von 1.840" würde genau das behaupten.
+        if showsGaps {
+            return "\(LCFormat.number(gapRows.count)) Werke, nicht im Bestand"
+        }
+        return "\(LCFormat.number(rows.count)) von \(LCFormat.number(books.count)) Titeln · \(sort.title)"
     }
 
     // MARK: Bearbeiten
@@ -215,6 +262,60 @@ final class AppModel {
     func searchCoverOnline(for book: Book) {
         guard let url = CoverSearch.url(title: book.title, author: book.author) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    // MARK: Autorbibliografie
+
+    /// Holt die Werkliste des Verfassers bei der DNB, hält sie gegen den Bestand und
+    /// legt die Lücken samt Cover in den eigenen Korb.
+    ///
+    /// Der Bestand wird dabei nicht angefasst — ein Werk, das fehlt, ist kein Buch dieser
+    /// Bibliothek, und es zu zählen wäre eine Behauptung über ein Regal, in dem es nicht steht.
+    func runBibliography(for book: Book) async {
+        let author = book.author.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !author.isEmpty else {
+            bibliographyMessage = "Dieses Buch führt keinen Verfasser — ohne ihn gibt es keine Werkliste."
+            return
+        }
+        guard !bibliographyRunning else { return }
+        bibliographyRunning = true
+        bibliographyMessage = "Werkliste wird geholt …"
+        defer { bibliographyRunning = false }
+
+        do {
+            let report = try await BibliographyRun.run(author: author, context: context) { done, total, title in
+                Task { @MainActor in
+                    self.bibliographyMessage = "[\(done)/\(total)] \(title)"
+                }
+            }
+            reloadGaps()
+            bibliographyMessage = report.gaps == 0
+                ? "Nichts fehlt — alle \(LCFormat.number(report.works)) Werke stehen im Regal."
+                : report.summary
+        } catch {
+            bibliographyMessage = "Werkliste konnte nicht geladen werden: \(error.localizedDescription)"
+        }
+    }
+
+    /// Eine Lücke wegnehmen — sie interessiert nicht, oder sie ist inzwischen erfasst.
+    func removeGap(_ entry: MissingBook) {
+        context.delete(entry)
+        try? context.save()
+        reloadGaps()
+    }
+
+    /// Steht auf `true`, solange die Rückfrage zum Leeren des Korbs offen ist.
+    var pendingGapPurge = false
+
+    /// Den ganzen Korb leeren. Trifft **nur** Lücken — der Bestand liegt in einem anderen
+    /// Typ und wird von diesem Weg nicht einmal gelesen.
+    func removeAllGaps() {
+        for entry in gapRows { context.delete(entry) }
+        try? context.save()
+        pendingGapPurge = false
+        reloadGaps()
+        showsGaps = false
+        bibliographyMessage = nil
     }
 
     // MARK: Löschen

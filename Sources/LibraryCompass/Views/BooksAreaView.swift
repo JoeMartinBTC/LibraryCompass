@@ -9,7 +9,9 @@ struct BooksAreaView: View {
 
     var body: some View {
         ScrollView(.vertical) {
-            if model.rows.isEmpty {
+            if model.showsGaps {
+                GapGrid(model: model, zoom: zoom)
+            } else if model.rows.isEmpty {
                 EmptyStateView(query: model.search)
             } else if model.viewMode == .grid {
                 CoverGrid(model: model, zoom: zoom)
@@ -43,6 +45,87 @@ private struct CoverGrid: View {
         }
         .padding(.horizontal, Space.s6)
         .padding(.bottom, 104)
+    }
+}
+
+/// Die Lücken aus der Autorbibliografie — gleiche Kacheln, aber ohne Bewertung und
+/// ohne Auswahl. Es gibt nichts zu bewerten an einem Buch, das man nicht hat.
+private struct GapGrid: View {
+    @Environment(\.lc) private var lc
+    @Bindable var model: AppModel
+    let zoom: Double
+
+    var body: some View {
+        let coverWidth = (Metrics.coverMinWidth * zoom).rounded()
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: coverWidth), spacing: Space.gridGapH, alignment: .top)],
+                  alignment: .leading,
+                  spacing: Space.gridGapV) {
+            ForEach(Array(model.visibleGapRows.enumerated()), id: \.element.persistentModelID) { index, entry in
+                GapCard(entry: entry, width: coverWidth) {
+                    model.removeGap(entry)
+                }
+                .onAppear {
+                    if index >= model.limit - 12 { model.loadMoreGapsIfNeeded() }
+                }
+            }
+        }
+        .padding(.horizontal, Space.s6)
+        .padding(.bottom, 104)
+        .accessibilityIdentifier("grid.gaps")
+    }
+}
+
+private struct GapCard: View {
+    @Environment(\.lc) private var lc
+    let entry: MissingBook
+    let width: CGFloat
+    let remove: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            CoverView(book: entry, width: width)
+                .lcShadow(lc.shadowCover)
+                .overlay(alignment: .topTrailing) {
+                    if hovering {
+                        Button(action: remove) {
+                            LineSymbol(name: "xmark", size: 9, weight: .medium)
+                                .foregroundStyle(lc.text2)
+                                .frame(width: 22, height: 22)
+                                .background(Circle().fill(.ultraThinMaterial))
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(6)
+                        .accessibilityIdentifier("btn.removeGap")
+                    }
+                }
+            Text(entry.title.isEmpty ? "Ohne Titel" : entry.title)
+                .lcType(.body)
+                .foregroundStyle(lc.text)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(entry.author.isEmpty ? "–" : entry.author)
+                .lcType(.captionS)
+                .foregroundStyle(lc.text3)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Text(entry.year.map(String.init) ?? "–")
+                .lcType(.captionS)
+                .tabularNums()
+                .foregroundStyle(lc.text3)
+                .frame(height: 14, alignment: .leading)
+        }
+        .frame(width: width, alignment: .leading)
+        .padding(8)
+        .background {
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
+                .fill(hovering ? lc.glass : .clear)
+        }
+        .padding(-8)
+        .onHover { hovering = $0 }
+        .accessibilityIdentifier("card.gap")
     }
 }
 

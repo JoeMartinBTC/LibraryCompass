@@ -42,8 +42,12 @@ final class CoverImages {
 }
 
 /// Cover im Verhältnis 2 : 3 — echtes Bild, sonst Verlauf mit Titel und Autor (README §5.5).
+///
+/// Nimmt `any BookFields` statt `Book`, damit die Lücken aus der Autorbibliografie
+/// dieselbe Darstellung bekommen wie der Bestand. Gebraucht werden hier ohnehin nur
+/// ISBN, Titel, Verfasser und Bildname.
 struct CoverView: View {
-    let book: Book
+    let book: any BookFields
     var width: CGFloat
     var radius: CGFloat = Radius.m
     var showsLabels = true

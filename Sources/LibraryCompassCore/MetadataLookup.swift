@@ -525,6 +525,28 @@ public enum DNB {
         return components.url!
     }
 
+    /// Alle Datensätze zu **einer Person** — Grundlage der Autorbibliografie.
+    ///
+    /// Anders als bei der Titelsuche wird hier der **ganze Name** gefragt, nicht nur der
+    /// Nachname: `PER=Schätzing` zählte am 2026-08-10 494 Datensätze, `PER=Frank
+    /// Schätzing` 323 — die Differenz sind andere Menschen desselben Nachnamens. Wer die
+    /// Werkliste eines Verfassers will, darf sie nicht mit seinen Namensvettern füllen.
+    ///
+    /// Die DNB gibt höchstens 100 Datensätze je Antwort; `startRecord` ist eins-basiert.
+    public static func personURL(person: String, startRecord: Int = 1,
+                                 maximumRecords: Int = 100) -> URL {
+        var components = URLComponents(string: "https://services.dnb.de/sru/dnb")!
+        components.queryItems = [
+            URLQueryItem(name: "version", value: "1.1"),
+            URLQueryItem(name: "operation", value: "searchRetrieve"),
+            URLQueryItem(name: "query", value: "PER=\(person)"),
+            URLQueryItem(name: "recordSchema", value: "oai_dc"),
+            URLQueryItem(name: "maximumRecords", value: String(maximumRecords)),
+            URLQueryItem(name: "startRecord", value: String(startRecord))
+        ]
+        return components.url!
+    }
+
     /// Der Katalog führt Personen als „Nachname, Vorname"; die Personensuche trifft mit
     /// dem Nachnamen zuverlässiger als mit der ganzen Zeichenkette.
     static func surname(of author: String) -> String {
@@ -543,6 +565,12 @@ public enum DNB {
         public var creators: [String]
         public var identifiers: [String]
         public var formats: [String] = []
+        /// Sprachcodes des Datensatzes („ger", „eng"). Leer, wenn der Katalog keinen führt.
+        public var languages: [String] = []
+        /// Erscheinungsform („Online-Ressource"). Leer bei der gedruckten Ausgabe.
+        public var types: [String] = []
+        /// Erscheinungsjahr, wie der Katalog es führt.
+        public var date: String = ""
 
         /// Tonträger tragen eine eigene ISBN und ein eigenes Cover — „Neid" von Arne Dahl
         /// bekam im ersten Lauf `Neid : 8 CDs`. Der Rollenwächter half nicht: Hörbücher
@@ -553,6 +581,25 @@ public enum DNB {
                          "tonträger", "dvd", "blu-ray", "audio"]
             return !audio.contains { haystack.contains($0) }
         }
+
+        /// Ein Datensatz mit Erzähler ist eine Lesung, auch wenn der Titel es verschweigt.
+        ///
+        /// `isPrint` liest nur Titel und Format — und die DNB führt „Tod und Teufel /
+        /// Frank Schätzing" (der Hörverlag, 2016) ohne jedes Wort, das darauf hinwiese.
+        /// Die Rolle steht trotzdem im Datensatz: „Kaminski, Stefan [Erzähler]".
+        public var hasNarrator: Bool {
+            creators.contains { $0.contains("[Erzähler") || $0.contains("[Sprecher") }
+        }
+
+        /// Nur digital — E-Book oder Hördatei. Für eine Werkliste zum Nachkaufen
+        /// zählt die gedruckte Ausgabe; dasselbe Werk führt der Katalog fast immer
+        /// zusätzlich als Druck.
+        public var isOnlineOnly: Bool {
+            types.contains { $0.localizedCaseInsensitiveContains("online") }
+        }
+
+        /// Erscheinungsjahr, sofern der Katalog eine vierstellige Jahreszahl führt.
+        public var year: Int? { OpenLibrary.yearFromText(date) }
 
         /// Erste gültige ISBN dieses Datensatzes. `urn:nbn:…` ist keine.
         public var isbn: String? { isbns.first }
@@ -629,7 +676,10 @@ public enum DNB {
                    identifiers: $0.filter { key, _ in
                        key == "identifier" || key.uppercased().hasSuffix("ISBN")
                    }.values.flatMap { $0 },
-                   formats: $0["format"] ?? [])
+                   formats: $0["format"] ?? [],
+                   languages: $0["language"] ?? [],
+                   types: $0["type"] ?? [],
+                   date: $0["date"]?.first ?? "")
         }
     }
 
@@ -788,7 +838,8 @@ public enum DNB {
 
 /// Sammelt die Dublin-Core-Felder einer SRU-Antwort nach lokalem Elementnamen.
 enum DublinCoreFields {
-    private static let wanted: Set<String> = ["title", "creator", "date", "format", "identifier"]
+    private static let wanted: Set<String> = ["title", "creator", "date", "format", "identifier",
+                                              "language", "type"]
 
     static func parse(_ data: Data) -> [String: [String]] {
         let collector = Collector(wanted: wanted)
@@ -1049,6 +1100,39 @@ public actor MetadataLookup {
     public func siblingISBNs(title: String, author: String) async throws -> [String] {
         guard let data = try await searchRecords(title: title, author: author) else { return [] }
         return DNB.siblingISBNs(from: data, title: title, author: author)
+    }
+
+    /// Die **ganze** Werkliste eines Verfassers, seitenweise zusammengesetzt.
+    ///
+    /// Die DNB gibt höchstens 100 Datensätze je Antwort, und zu einem gelesenen Autor
+    /// führt sie leicht dreihundert. Wer nur die erste Seite nimmt, hält den Rest für
+    /// nicht vorhanden — derselbe Fehler, der am 2026-08-10 „Phantom" mit „Matsuri"
+    /// belegte. Deshalb wird bis zum Ende geblättert, und ein Lauf, der an die Obergrenze
+    /// stößt, weist sich als unvollständig aus, statt eine gekürzte Liste als ganze
+    /// auszugeben.
+    public func bibliography(author: String,
+                             maximumTotal: Int = 1_000) async throws -> BibliographyResult {
+        let person = author.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !person.isEmpty else { return BibliographyResult(works: [], seen: 0, total: 0) }
+
+        var records: [DNB.Record] = []
+        var total = 0
+        var start = 1
+
+        while start <= maximumTotal {
+            let (data, status) = try await client.get(DNB.personURL(person: person, startRecord: start))
+            guard status == 200 else { break }
+            if start == 1 { total = DNB.numberOfRecords(in: data) ?? 0 }
+            let page = DNB.records(data)
+            guard !page.isEmpty else { break }
+            records.append(contentsOf: page)
+            start += page.count
+            if records.count >= total { break }
+        }
+
+        return BibliographyResult(works: AuthorBibliography.works(in: records, author: person),
+                                  seen: records.count,
+                                  total: total)
     }
 
     private func searchRecords(title: String, author: String) async throws -> Data? {
