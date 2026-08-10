@@ -28,6 +28,10 @@ Delicious Library for personal use.
   or hit *Suchen* to open title and author as a book search in your own browser. For older
   German editions and self-published titles no free source carries a picture, so the app
   takes it from you instead of pretending none exists
+- **Author bibliography** — one button in the detail panel pulls the author's works from
+  the DNB, matches them against the shelf, and puts what is missing into its own basket
+  with covers. Counted separately and stored as its own type, so a gap can never slip into
+  the stock, the CSV export, or the stats: **[docs/bibliografie.md](docs/bibliografie.md)**
 - **Import** of the Delicious Library plist XML export — idempotent, keeps own
   ratings/comments, marks imported books as read (added date = read date),
   strips catalog clutter from titles ("Wer Lügen sät: Thriller" → "Wer Lügen sät")
@@ -105,7 +109,7 @@ The key lives outside the repo, next to the library database.
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
 | `Tests/LibraryCompassTests/` | unit tests, including live network checks — `swift test` is the authority, not a number in this file |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
-| `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, backup & restore, Google Books key setup |
+| `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, author bibliography & gap basket, backup & restore, Google Books key setup |
 | `design/handoff/` | design tokens and the static mockup the UI was built against |
 | `web/` | the product page served at librarycompass.com — plain static files, no build step |
 | `viewer/` | the library as a phone page: search, barcode scan, offline — see [viewer/README.md](viewer/README.md) |

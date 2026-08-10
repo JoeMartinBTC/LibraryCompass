@@ -50,7 +50,10 @@ struct LibraryView: View {
             VStack(spacing: 0) {
                 ToolbarView(model: model, sidebarOpen: $sidebarOpen, zoom: $zoom, appearance: $appearance)
                 TitleRow(model: model, statsOpen: $statsOpen)
-                if statsOpen {
+                // Im Lückenkorb bleiben die Karten weg: „91 % gelesen" und „zuletzt
+                // gelesen" sind Aussagen über den Bestand, und unter der Überschrift
+                // „Lücken" liest sich das, als wären sie über die Lücken.
+                if statsOpen && !model.showsGaps {
                     StatsCardsView(model: model)
                 } else {
                     Color.clear.frame(height: 14)
@@ -62,8 +65,12 @@ struct LibraryView: View {
                 .frame(height: Metrics.scrimHeight)
                 .allowsHitTesting(false)
 
-            FloatingAction { model.dialog = .isbn }
-                .padding(.bottom, Metrics.actionBottomInset)
+            // Nur bei geschlossener Seitenleiste: dann gibt es keinen anderen Ort für die
+            // Hauptaktion. Ist sie offen, sitzt der Knopf dort und verdeckt keine Cover.
+            if !sidebarOpen {
+                FloatingAction { model.dialog = .isbn }
+                    .padding(.bottom, Metrics.actionBottomInset)
+            }
         }
         // Mittelspalte gibt nach, damit Seitenleiste (bis 400) und Detail-Panel
         // nebeneinander passen — Inhalte kürzen statt überlaufen (README §11.5).

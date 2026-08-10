@@ -32,6 +32,8 @@ struct DetailPanelView: View {
                         Chip(text: book.pages.map { "\(LCFormat.number($0)) Seiten" } ?? "– Seiten")
                     }
 
+                    bibliographyButton
+
                     EditCard(model: model, book: book)
 
                     Text("ISBN \(book.isbn.isEmpty ? "–" : book.isbn)")
@@ -108,6 +110,42 @@ struct DetailPanelView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Was hat dieser Verfasser sonst geschrieben — und was davon fehlt hier?
+    ///
+    /// Der Lauf holt die Werkliste bei der DNB und legt, was fehlt, in den Lückenkorb.
+    /// Der Bestand bleibt unberührt: ein Buch, das man nicht hat, ist keines.
+    private var bibliographyButton: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                Task { await model.runBibliography(for: book) }
+            } label: {
+                HStack(spacing: 6) {
+                    LineSymbol(name: "books.vertical", size: 12, weight: .medium)
+                    Text(model.bibliographyRunning ? "Werkliste läuft …" : "Autorbibliografie")
+                }
+                .lcType(.caption)
+                .foregroundStyle(book.author.isEmpty ? lc.text3 : lc.text2)
+                .frame(maxWidth: .infinity)
+                .frame(height: Metrics.controlPanel)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.m, style: .continuous)
+                        .strokeBorder(lc.brd, lineWidth: 1)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(model.bibliographyRunning || book.author.isEmpty)
+            .accessibilityIdentifier("btn.authorBibliography")
+
+            if let message = model.bibliographyMessage {
+                Text(message)
+                    .lcType(.captionS)
+                    .foregroundStyle(lc.text3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private func smallButton(_ title: String, symbol: String, id: String,

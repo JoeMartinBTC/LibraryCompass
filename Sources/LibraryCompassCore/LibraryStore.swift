@@ -3,7 +3,9 @@ import SwiftData
 
 /// Zugang zum lokalen SwiftData-Store. Kein CloudKit, kein Server.
 public enum LibraryStore {
-    public static let schema = Schema([Book.self])
+    /// `MissingBook` liegt im selben Store, aber als eigener Typ — der Bestand bleibt
+    /// `Book`, und kein Zähler kann die Lücken versehentlich mitnehmen.
+    public static let schema = Schema([Book.self, MissingBook.self])
 
     /// Store auf einer bestimmten Datei — für Tests und den UI-Testmodus.
     public static func container(at url: URL) throws -> ModelContainer {
