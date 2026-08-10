@@ -11,9 +11,18 @@ Delicious Library for personal use.
   iPhone works as a Continuity Camera and is preferred for its autofocus.
   Details and pitfalls: **[docs/scanner.md](docs/scanner.md)**
 - **Add by ISBN** (⌘N), metadata via Open Library → DNB → Google Books,
-  covers edition-exact from Amazon by ISBN-10: **[docs/lookup.md](docs/lookup.md)**
+  covers from Amazon by ISBN-10 first: **[docs/lookup.md](docs/lookup.md)**.
+  An Amazon ASIN or a pasted product URL is recognised as such — it is not an ISBN, and
+  turning it into one used to produce a phantom number. Books without an ISBN (e-books,
+  self-published titles) are created from title and author instead
+- **Delete an entry** — with a confirmation naming the title. The cover file stays: the
+  library holds duplicates, and two entries can share one picture
 - **Cover cache and backfill** — one file per book, resumable, an incomplete run
   says so and exits non-zero: **[docs/covers.md](docs/covers.md)**
+- **Set a cover by hand** — drop an image onto the cover in the detail panel, paste it,
+  or hit *Suchen* to open title and author as a book search in your own browser. For older
+  German editions and self-published titles no free source carries a picture, so the app
+  takes it from you instead of pretending none exists
 - **Import** of the Delicious Library plist XML export — idempotent, keeps own
   ratings/comments, marks imported books as read (added date = read date),
   strips catalog clutter from titles ("Wer Lügen sät: Thriller" → "Wer Lügen sät")
@@ -31,31 +40,49 @@ Out of scope for now: iPhone app, sync.
 ```bash
 ./make-app.sh      # build the .app bundle (SwiftPM release + ad-hoc signing)
 ./install-app.sh   # install to /Applications (resets the TCC camera grant — see docs/scanner.md)
-swift test         # 229 tests, including live network checks
+swift test         # 292 tests, including live network checks
 ./ui-test.sh       # XCUI smoke tests via xcodegen project
 ```
 
 Headless maintenance (app must be closed — same SwiftData store):
 
 ```bash
-./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-isbns         # look up missing ISBNs (DNB)
-./LibraryCompass.app/Contents/MacOS/LibraryCompass --fetch-covers        # backfill covers
-./LibraryCompass.app/Contents/MacOS/LibraryCompass --mark-read           # read date := added date
-./LibraryCompass.app/Contents/MacOS/LibraryCompass --export ~/books.csv  # CSV export
+LC=./LibraryCompass.app/Contents/MacOS/LibraryCompass
+
+$LC --fetch-isbns              # look up missing ISBNs (DNB)
+$LC --fetch-authors            # fill in missing authors, only where the catalogue is unambiguous
+$LC --fetch-covers             # backfill covers
+$LC --apply-covers list.tsv    # set checked covers by hand, empty field withdraws one
+$LC --apply-authors list.tsv   # set or clear authors
+$LC --mark-read                # read date := added date
+$LC --export ~/books.csv       # CSV export
 ```
 
-Run `--fetch-isbns` before `--fetch-covers`: without an ISBN a book cannot reach the
-edition-exact cover source. Both only visit books with the respective gap, so they resume
-on re-run, and both exit **1** when they did not get through the whole list — check the
-code, don't trust the last printed line. Details: [docs/covers.md](docs/covers.md).
+Order matters: `--fetch-authors` before `--fetch-isbns` before `--fetch-covers`. Without an
+author the title search has no anchor and must not run at all; without an ISBN a book cannot
+reach the edition-exact cover source. Each pass only visits books with the respective gap, so
+they resume on re-run, and each exits **1** when it did not get through the whole list —
+check the code, don't trust the last printed line.
+
+The two `--apply-*` passes take a tab-separated file: key, tab, value. The key is the book's
+ISBN or its title hash; an empty value withdraws the cover or clears the author. They exist
+because an automatic pass sometimes gets it wrong, and a correction needs a way in — and
+back. Details: [docs/covers.md](docs/covers.md).
 
 ## Metadata sources
 
 Metadata: Open Library → German National Library (DNB, no key, covers German editions
 Open Library lacks) → Google Books.
 
-Covers: Amazon by ISBN-10 first — the only edition-exact source — then Open Library,
-Google Books, and finally a title search guarded by an author match.
+Covers: Amazon by ISBN-10 first — the most edition-exact source, though not infallible: it
+has been observed serving another volume of the same series under a correct ISBN. Then Open
+Library, Google Books, **sibling editions of the same work found via a catalogue title
+search** (the stored ISBN may be the audiobook's, while only the print run carries a
+picture), and finally a title search guarded by an author match.
+
+Withdrawn covers stay withdrawn: `Covers/abgelehnte-cover.tsv` records which image was
+rejected for which book, so the next backfill does not fetch it again. A cover you assign
+by hand overrides that — you looked at it.
 
 Full details, including the pitfalls each step exists for:
 **[docs/lookup.md](docs/lookup.md)**.
@@ -70,9 +97,11 @@ The key lives outside the repo, next to the library database.
 |---|---|
 | `Sources/LibraryCompassCore/` | model, store, import/export, query, stats, lookup, cover cache, scan/title logic |
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
-| `Tests/LibraryCompassTests/` | 229 tests, including live network checks |
+| `Tests/LibraryCompassTests/` | 292 tests, including live network checks |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
 | `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, backup & restore, Google Books key setup |
+| `design/handoff/` | design tokens and the static mockup the UI was built against |
+| `web/` | the product page served at librarycompass.com — plain static files, no build step |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |
 
 Data lives in `~/Library/Application Support/LibraryCompass/` (SwiftData store,
