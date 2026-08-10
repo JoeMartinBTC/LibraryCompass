@@ -240,3 +240,42 @@ or Open Library) finds the siblings, and each sibling brings its own ISBN to try
 `3548229077` („Depesche aus dem Jenseits", Ullstein) it serves the cover of a different
 volume in the same series. The endpoint remains first choice, but its answer is evidence,
 not proof — which is what the human check is for.
+
+## Sibling editions — the stage that was missing
+
+The stored ISBN names **one edition**; the cover belongs to the **work**. If the entry
+carries the audiobook's or the e-book's ISBN, Amazon serves no picture under it, while the
+print edition — a different ISBN — has one.
+
+The two catalogue records are **not linked**. „Wie man einen Drachen tötet" is stored as
+`9783863526191` (Hierax Medien, a reading, 43 bytes at Amazon); the Europa Verlag print run
+is `3958905730` and serves 22.606 bytes. The print record's `776` field points only at the
+online edition, never at the reading. Nothing leads from one ISBN to the other.
+
+Only a **search by title and author** finds the siblings, and each sibling brings its own
+ISBN to try at the image endpoint. `siblingISBNs` does that, with both guards moved:
+
+- **Title stricter.** `sameWork` compares the **unabridged** title of the entry, not the
+  simplified search form. „Steve Jobs" is a prefix of two different books by Jeffrey Young,
+  and the loose comparison handed the entry the wrong one on 2026-08-09.
+- **Author looser.** The DNB was already queried with `PER=`, so it matched the person
+  itself — and it transliterates differently than the library does. „Chodorkowski" against
+  „Chodorkovskij" fails a word-by-word comparison; `sameSurname` asks for six shared leading
+  characters and a length difference of at most two.
+
+Without an author on the entry there is no sibling search at all. The anchor is missing,
+and „Flashback" alone returns nine different books.
+
+## Withdrawn covers stay withdrawn
+
+Three wrong covers were withdrawn by hand on 2026-08-09. The next `--fetch-covers`, the
+following morning, fetched two of them back — the chain finds the same source again. A
+correction the next run undoes is not a correction.
+
+`Covers/abgelehnte-cover.tsv` records `identity <TAB> sha256` for every image a person
+rejected for a given book. Both ways into the cache check it. The entry is written by
+`--apply-covers` itself when it clears a cover, because a rule you have to remember to
+maintain by hand is a rule that gets forgotten.
+
+The rejection binds an **image to a book**, not a book. Assigning a different — correct —
+cover to the same book stays possible, which is the whole point of withdrawing the wrong one.

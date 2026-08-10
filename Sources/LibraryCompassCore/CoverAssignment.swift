@@ -127,6 +127,14 @@ public enum CoverAssignment {
                 book.coverPath = name
                 report.assigned += 1
             } else {
+                // Erst merken, dass dieses Bild nicht zu diesem Buch gehört — sonst holt
+                // der nächste `--fetch-covers` es aus derselben Quelle zurück. Genau das
+                // ist am 2026-08-10 passiert: von drei Rücknahmen vom Vortag waren zwei
+                // nach einem Lauf wieder da.
+                if let name = book.coverPath, !name.isEmpty,
+                   let identity = CoverKey.identity(isbn: book.isbn, title: book.title, author: book.author) {
+                    try? await cache.reject(imageNamed: name, for: identity)
+                }
                 // Die Bilddatei bleibt liegen. Sie kann zu einem zweiten Eintrag desselben
                 // Buchs gehören (der Bestand führt Dubletten), und eine Karteileiche im
                 // Ordner ist harmlos — ein gelöschtes Cover eines anderen Buchs nicht.

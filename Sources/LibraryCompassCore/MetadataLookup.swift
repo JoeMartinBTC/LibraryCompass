@@ -97,8 +97,43 @@ public enum AuthorMatch {
     }
 
     private static func tokens(_ value: String) -> Set<String> {
-        let folded = value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "de_DE"))
-        return Set(folded.split(whereSeparator: { !$0.isLetter }).map(String.init).filter { $0.count > 1 })
+        Set(words(value).filter { $0.count > 1 })
+    }
+
+    static func words(_ value: String) -> [String] {
+        value.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                      locale: Locale(identifier: "de_DE"))
+            .split(whereSeparator: { !$0.isLetter })
+            .map(String.init)
+    }
+
+    /// Sind das zwei Schreibweisen desselben Nachnamens?
+    ///
+    /// Kataloge transliterieren anders als der Bestand: „Chodorkow**ski**" gegen
+    /// „Chodorkov**skij**". Die beiden trennen sich am neunten Zeichen, teilen davor aber
+    /// acht — der **gemeinsame Anfang** trägt die Entscheidung, nicht ein fester Ausschnitt
+    /// des einen Namens.
+    ///
+    /// Verlangt werden **sechs gemeinsame Zeichen** und dass die Namen sich in der Länge
+    /// um **höchstens zwei** unterscheiden. Beides zusammen trennt die Fälle:
+    ///
+    /// | | gemeinsam | Längendiff | |
+    /// |---|---|---|---|
+    /// | Chodorkowski / Chodorkovskij | 8 | 1 | derselbe Mensch |
+    /// | Dostojewski / Dostojewskij | 11 | 1 | derselbe Mensch |
+    /// | Meyer / Meyerhoff | 5 | 4 | zwei Menschen |
+    /// | Hillen / Hillenbrand | 6 | 5 | zwei Menschen |
+    ///
+    /// ⚠️ Die Grenze liegt bei slawischen Endungen: „Chodorkowski" und „Chodorkowskaja"
+    /// gelten nach dieser Regel als derselbe Name, sind aber Mann und Frau. Das zu
+    /// trennen bräuchte Wissen über Namensformen; solange kein gemessener Fall im Bestand
+    /// darauf trifft, wiegt der gewonnene Treffer schwerer — der Titelabgleich steht
+    /// ohnehin daneben und ist der stärkere Wächter.
+    static func sameSurname(_ lhs: String, _ rhs: String) -> Bool {
+        guard let a = words(lhs).first, let b = words(rhs).first else { return false }
+        if a == b { return true }
+        let shared = zip(a, b).prefix { $0 == $1 }.count
+        return shared >= 6 && abs(a.count - b.count) <= 2
     }
 }
 
@@ -139,6 +174,27 @@ public enum TitleMatch {
         }
         result.append(rest.trimmingCharacters(in: .whitespacesAndNewlines))
         return result.filter { !$0.isEmpty }
+    }
+
+    /// Bezeichnen die beiden Titel **dasselbe Werk**? Strenger als `matches`.
+    ///
+    /// `matches` vergleicht gegen den **vereinfachten** Titel, und der ist für die Suche
+    /// gedacht, nicht für die Identität: „Steve Jobs. Der Henry Ford der Computerindustrie"
+    /// schrumpft zu „Steve Jobs", und damit passt auch „Steve Jobs und die
+    /// Erfolgsgeschichte von Apple" — ein anderes Buch derselben Verfasser. Genau so
+    /// bekam der Eintrag am 2026-08-09 das Cover der Fischer-Ausgabe.
+    ///
+    /// Hier zählt deshalb der **ungekürzte** Titel des Eintrags. Der Katalogtitel darf
+    /// kürzer sein (der Eintrag führt den Untertitel oft mit, der Katalog nicht) oder
+    /// länger (umgekehrt) — aber einer muss den anderen von vorn decken.
+    public static func sameWork(_ stored: String, _ candidate: String) -> Bool {
+        let mine = words(stored)
+        guard !mine.isEmpty else { return false }
+        return titles(in: candidate).contains { other in
+            let theirs = words(other)
+            guard !theirs.isEmpty else { return false }
+            return startsWith(mine, theirs) || startsWith(theirs, mine)
+        }
     }
 
     private static func words(_ value: String) -> [String] {
@@ -521,6 +577,29 @@ public enum DNB {
             return names.contains { AuthorMatch.matches(author, $0) }
         }
 
+        /// Wie `hasAuthor`, aber der Namensvergleich läuft über den **Wortstamm** des
+        /// Nachnamens statt über ganze Wörter.
+        ///
+        /// Kataloge transliterieren anders als der Bestand: die App führt
+        /// „Chodorkow**ski**, Michail", die DNB die Druckausgabe unter
+        /// „Chodorkov**skij**, Michail Borisovič". `AuthorMatch` verlangt gleiche Wörter
+        /// und verwirft damit den richtigen Datensatz — am 2026-08-09 blieb „Wie man einen
+        /// Drachen tötet" deshalb ohne Cover, obwohl die DNB die Druckausgabe führte.
+        ///
+        /// Die Verfasserrolle bleibt Pflicht. Erzähler und Übersetzer belegen keine
+        /// Ausgabe, sonst erbt der Roman das Cover des Hörbuchs.
+        public func hasAuthorStem(_ author: String) -> Bool {
+            guard !author.isEmpty else { return false }
+            let wanted = DNB.surname(of: author)
+            let writers = creators.filter { $0.contains("[Verfasser") }
+            guard !writers.isEmpty else { return false }
+            return writers.contains { raw in
+                let name = raw.replacingOccurrences(of: "\\[[^\\]]+\\]", with: "",
+                                                    options: .regularExpression)
+                return AuthorMatch.sameSurname(wanted, DNB.surname(of: name))
+            }
+        }
+
         /// Aus „978-3-442-49404-0 kart. : EUR 16.00" die Nummer holen — und die
         /// Prüfziffer rechnen, sonst landet irgendeine Artikelnummer bei Amazon.
         static func firstISBN(in raw: String) -> String? {
@@ -567,6 +646,28 @@ public enum DNB {
     /// eine Chance hat.
     public static func isbns(from data: Data, title: String, author: String) -> [String] {
         matching(data, title: title, author: author).flatMap(\.isbns)
+    }
+
+    /// ISBNs der **Geschwisterausgaben** desselben Werks — Druck neben Hörbuch, Taschenbuch
+    /// neben gebunden. Nur dafür, ein Cover zu finden.
+    ///
+    /// Eigene Regeln, nicht die von `isbns`, weil hier beide Wächter anders liegen müssen:
+    ///
+    /// - **Der Titel strenger.** Es geht um dieselbe *Sache*, nicht um einen Suchtreffer.
+    ///   `sameWork` vergleicht den ungekürzten Titel; sonst zieht „Steve Jobs. Der Henry
+    ///   Ford der Computerindustrie" das Cover von „Steve Jobs und die Erfolgsgeschichte
+    ///   von Apple".
+    /// - **Der Verfasser lockerer.** Die DNB wurde bereits mit `PER=` gefragt, hat also
+    ///   selbst abgeglichen — und schreibt Namen anders als der Bestand. Ein eigener
+    ///   Wortvergleich verwirft hier den richtigen Datensatz.
+    ///
+    /// Ohne Verfasser im Bestand gibt es keine Geschwistersuche: dann fehlt der Anker,
+    /// und die Trefferliste zu „Flashback" enthält neun verschiedene Bücher.
+    public static func siblingISBNs(from data: Data, title: String, author: String) -> [String] {
+        guard !author.isEmpty else { return [] }
+        return records(data)
+            .filter { TitleMatch.sameWork(title, $0.title) && $0.isPrint && $0.hasAuthorStem(author) }
+            .flatMap(\.isbns)
     }
 
     /// Der Verfasser des belegten Datensatzes. Für Bestandsbücher, die selbst keinen führen.
@@ -801,12 +902,16 @@ public actor MetadataLookup {
            let google = try? await googleBooks(isbn: isbn), let cover = google.coverURL {
             return cover
         }
-        // Die gespeicherte ISBN kann die des E-Books sein — Amazon führt sein Bild dann
-        // unter keiner davon. Die DNB kennt zu demselben Titel auch die Druckausgabe;
-        // deren ISBN trifft. Belegt an „In den Tod" (Grimm): gespeichert `9783492990172`
-        // = 43 Byte, Druck `349206115X` = 43.707 Byte.
-        if let alternatives = try? await alternativeISBNs(title: title, author: author) {
-            for candidate in alternatives where ISBN.canonical(candidate) != ISBN.canonical(isbn) {
+        // Die gespeicherte ISBN bezeichnet **eine Ausgabe**, das Cover hängt aber am Werk.
+        // Ist die gespeicherte das E-Book oder das Hörbuch, führt Amazon unter ihr kein
+        // Bild — die Druckausgabe hat eine eigene ISBN, und die trifft. Belegt an
+        // „In den Tod" (Grimm): gespeichert `9783492990172` = 43 Byte, Druck `349206115X`
+        // = 43.707 Byte. Und an „Wie man einen Drachen tötet": gespeichert war die
+        // Hörbuchfassung `9783863526191` = 43 Byte, die Druckausgabe `3958905730` liefert
+        // 22.606 Byte. Die beiden DNB-Datensätze sind untereinander **nicht** verknüpft;
+        // nur die Suche über Titel und Verfasser findet die Geschwisterausgabe.
+        if let siblings = try? await siblingISBNs(title: title, author: author) {
+            for candidate in siblings where ISBN.canonical(candidate) != ISBN.canonical(isbn) {
                 if let amazon = AmazonCover.url(isbn: candidate), let cover = await usableCover(amazon) {
                     return cover
                 }
@@ -876,6 +981,13 @@ public actor MetadataLookup {
     public func alternativeISBNs(title: String, author: String) async throws -> [String] {
         guard let data = try await searchRecords(title: title, author: author) else { return [] }
         return DNB.isbns(from: data, title: title, author: author)
+    }
+
+    /// ISBNs der Geschwisterausgaben desselben Werks — die Stufe, die den Fall
+    /// „gespeichert ist das Hörbuch, das Cover hängt an der Druckausgabe" löst.
+    public func siblingISBNs(title: String, author: String) async throws -> [String] {
+        guard let data = try await searchRecords(title: title, author: author) else { return [] }
+        return DNB.siblingISBNs(from: data, title: title, author: author)
     }
 
     private func searchRecords(title: String, author: String) async throws -> Data? {

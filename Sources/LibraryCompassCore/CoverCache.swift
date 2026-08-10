@@ -15,6 +15,14 @@ public actor CoverCache {
     private var knownImages: [String: String] = [:]
     private var didIndexDirectory = false
 
+    /// „Dieses Bild gehört **nicht** zu diesem Buch" — von Hand entschieden.
+    ///
+    /// Ohne dieses Gedächtnis ist jede Handkorrektur wertlos: am 2026-08-09 wurden drei
+    /// falsche Cover zurückgenommen, und der nächste `--fetch-covers` am Morgen darauf
+    /// holte zwei davon wieder. Die Kette findet dieselbe Quelle ja erneut.
+    private var rejected: Set<String> = []
+    private var didLoadRejections = false
+
     public init(client: HTTPClient = URLSessionHTTPClient(), directory: URL? = nil) {
         self.client = client
         self.directoryURL = directory
@@ -54,6 +62,11 @@ public actor CoverCache {
         // Verlagsplatzhalter. Am echten Bestand: „Leadership by the Book" und „Swoosh"
         // trugen beide das HarperCollins-Bild „COVER TO BE REVEALED" — 15.419 Byte, also
         // weit über der Mindestgröße. Ein falsches Cover wiegt schwerer als ein fehlendes.
+        // Von Hand verworfen heißt: nie wieder. Sonst dreht der nächste Lauf jede
+        // Korrektur zurück — am 2026-08-10 geschehen, zwei von drei Rücknahmen waren
+        // nach einem `--fetch-covers` wieder da.
+        if try isRejected(data, identity: owner) { return nil }
+
         let digest = Self.digest(of: data)
         if let existing = try ownerOfImage(digest), existing != owner { return nil }
 
@@ -62,6 +75,34 @@ public actor CoverCache {
         try data.write(to: target, options: .atomic)
         knownImages[digest] = owner
         return name
+    }
+
+    /// Merkt sich, dass dieses Bild nicht zu diesem Buch gehört — damit kein späterer
+    /// Lauf es zurückholt. Ohne Bild (Buch hatte keine Datei) passiert nichts.
+    public func reject(imageNamed name: String, for identity: String) throws {
+        guard let url = fileURL(for: name), let data = try? Data(contentsOf: url) else { return }
+        try loadRejections()
+        let entry = "\(identity)\t\(Self.digest(of: data))"
+        guard rejected.insert(entry).inserted else { return }
+        try (rejected.sorted().joined(separator: "\n") + "\n")
+            .write(to: try rejectionFile(), atomically: true, encoding: .utf8)
+    }
+
+    /// Wurde dieses Bild für dieses Buch schon einmal von Hand verworfen?
+    public func isRejected(_ data: Data, identity: String) throws -> Bool {
+        try loadRejections()
+        return rejected.contains("\(identity)\t\(Self.digest(of: data))")
+    }
+
+    private func rejectionFile() throws -> URL {
+        try directory().appendingPathComponent("abgelehnte-cover.tsv")
+    }
+
+    private func loadRejections() throws {
+        guard !didLoadRejections else { return }
+        didLoadRejections = true
+        guard let text = try? String(contentsOf: try rejectionFile(), encoding: .utf8) else { return }
+        rejected = Set(text.split(separator: "\n").map(String.init).filter { $0.contains("\t") })
     }
 
     /// Legt ein bereits vorliegendes Bild ab — für von Hand geprüfte Cover.
@@ -75,6 +116,7 @@ public actor CoverCache {
                       extension ext: String = "jpg") async throws -> String? {
         guard !stem.isEmpty, Self.isUsableImage(data) else { return nil }
         let owner = identity ?? stem
+        if try isRejected(data, identity: owner) { return nil }
         let digest = Self.digest(of: data)
         if let existing = try ownerOfImage(digest), existing != owner { return nil }
 
