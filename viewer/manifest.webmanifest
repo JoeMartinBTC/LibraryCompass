@@ -1,0 +1,14 @@
+{
+  "name": "Habe ich das?",
+  "short_name": "Habe ich das?",
+  "description": "Der eigene Buchbestand zum Nachschlagen unterwegs.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#150e26",
+  "theme_color": "#150e26",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

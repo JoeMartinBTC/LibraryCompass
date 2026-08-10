@@ -22,3 +22,8 @@ mockup/covers/
 
 # Gebautes App-Bundle (regenerierbar via ./make-app.sh)
 LibraryCompass.app/
+
+# Der ausgelieferte Bestand für den Taschen-Viewer — das sind echte Daten,
+# nicht Quelltext. Der Viewer selbst (viewer/) gehört ins Repo, sein Inhalt nie.
+viewer/katalog.json
+viewer/cover/

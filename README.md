@@ -19,6 +19,9 @@ Delicious Library for personal use.
   library holds duplicates, and two entries can share one picture
 - **Cover cache and backfill** — one file per book, resumable, an incomplete run
   says so and exits non-zero: **[docs/covers.md](docs/covers.md)**
+- **Pocket viewer** — `--export-web` writes the stock as a small offline page: search,
+  barcode scan, and one answer — do I already own this? Built for the bookshop, not for
+  editing: **[viewer/README.md](viewer/README.md)**
 - **Set a cover by hand** — drop an image onto the cover in the detail panel, paste it,
   or hit *Suchen* to open title and author as a book search in your own browser. For older
   German editions and self-published titles no free source carries a picture, so the app
@@ -54,6 +57,7 @@ $LC --fetch-authors            # fill in missing authors, only where the catalog
 $LC --fetch-covers             # backfill covers
 $LC --apply-covers list.tsv    # set checked covers by hand, empty field withdraws one
 $LC --apply-authors list.tsv   # set or clear authors
+$LC --export-web viewer        # catalogue + thumbnails for the pocket viewer
 $LC --mark-read                # read date := added date
 $LC --export ~/books.csv       # CSV export
 ```
@@ -102,6 +106,7 @@ The key lives outside the repo, next to the library database.
 | `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, backup & restore, Google Books key setup |
 | `design/handoff/` | design tokens and the static mockup the UI was built against |
 | `web/` | the product page served at librarycompass.com — plain static files, no build step |
+| `viewer/` | the library as a phone page: search, barcode scan, offline — see [viewer/README.md](viewer/README.md) |
 | `make-app.sh` / `install-app.sh` | build the bundle, install to `/Applications` |
 
 Data lives in `~/Library/Application Support/LibraryCompass/` (SwiftData store,

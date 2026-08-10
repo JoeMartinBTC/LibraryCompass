@@ -74,6 +74,13 @@ enum LaunchOptions {
         return CommandLine.arguments[index + 1]
     }
 
+    /// `--export-web <ordner>` schreibt Katalog und Miniaturen für den Taschen-Viewer.
+    static var exportWebPath: String? {
+        guard let index = CommandLine.arguments.firstIndex(of: "--export-web"),
+              CommandLine.arguments.count > index + 1 else { return nil }
+        return CommandLine.arguments[index + 1]
+    }
+
     /// `--mark-read` trägt bei allen Büchern ohne Gelesen-Datum das Erfassungsdatum ein.
     static var marksRead: Bool { CommandLine.arguments.contains("--mark-read") }
 
@@ -164,6 +171,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+
+        if let path = LaunchOptions.exportWebPath {
+            Task { @MainActor in
+                exit(await WebExport.run(into: path) ? 0 : 1)
+            }
+            return
+        }
 
         if let path = LaunchOptions.applyAuthorsPath {
             Task { @MainActor in

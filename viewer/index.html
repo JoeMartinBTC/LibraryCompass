@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1a1130">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Habe ich das?</title>
+<style>
+  :root {
+    --bg:#150e26; --card:#231738; --card2:#2c1d46; --line:#3a2a58;
+    --ink:#f2edff; --ink2:#b6a8d4; --ink3:#8878ac;
+    --accent:#8b5cf6; --ok:#34d399; --warn:#fbbf24;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; }
+  body {
+    background:var(--bg); color:var(--ink);
+    font:400 17px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display:flex; flex-direction:column;
+    padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+  }
+  header { padding:14px 16px 10px; position:sticky; top:0; background:var(--bg); z-index:5; }
+  .row { display:flex; gap:8px; align-items:center; }
+  input[type=search] {
+    flex:1; min-width:0; font-size:17px; color:var(--ink);
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:13px 14px; appearance:none;
+  }
+  input[type=search]:focus { outline:none; border-color:var(--accent); }
+  button {
+    font:inherit; font-size:15px; color:var(--ink); background:var(--card);
+    border:1px solid var(--line); border-radius:12px; padding:13px 14px; cursor:pointer;
+  }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  .meta { color:var(--ink3); font-size:13px; padding:6px 2px 0; display:flex; justify-content:space-between; }
+
+  /* Das Urteil: groß, sofort lesbar, ohne Nachdenken. */
+  #verdict { margin:10px 16px 0; padding:16px; border-radius:16px; display:none; }
+  #verdict.have { display:block; background:rgba(52,211,153,.14); border:1px solid var(--ok); }
+  #verdict.miss { display:block; background:rgba(251,191,36,.12); border:1px solid var(--warn); }
+  #verdict h2 { margin:0 0 4px; font-size:22px; }
+  #verdict p { margin:0; color:var(--ink2); font-size:15px; }
+
+  ul { list-style:none; margin:0; padding:0 8px 24px; overflow-y:auto; flex:1; }
+  li { display:flex; gap:12px; padding:10px 8px; border-bottom:1px solid var(--line); align-items:center; }
+  li img, li .ph {
+    width:46px; height:68px; flex:none; border-radius:5px; object-fit:cover;
+    background:var(--card2); box-shadow:0 2px 6px rgba(0,0,0,.4);
+  }
+  .t { font-size:16px; line-height:1.25; }
+  .a { color:var(--ink3); font-size:13px; margin-top:2px; }
+  .badge { margin-left:auto; font-size:12px; color:var(--ink3); white-space:nowrap; }
+  .stars { color:var(--warn); font-size:12px; letter-spacing:1px; }
+
+  #cam { position:fixed; inset:0; background:#000; display:none; flex-direction:column; z-index:20; }
+  #cam video { flex:1; width:100%; object-fit:cover; }
+  #cam .bar { padding:14px; padding-bottom:calc(14px + var(--safe-bottom)); background:#000; display:flex; gap:10px; }
+  #hint { position:absolute; left:0; right:0; top:calc(20px + var(--safe-top)); text-align:center;
+          color:#fff; font-size:15px; text-shadow:0 1px 4px #000; }
+  .empty { padding:36px 20px; text-align:center; color:var(--ink3); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row">
+    <input type="search" id="q" placeholder="Titel oder Autor" autocomplete="off"
+           autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    <button id="scan" class="primary" hidden>Scannen</button>
+  </div>
+  <div class="meta"><span id="count">…</span><span id="stamp"></span></div>
+</header>
+
+<div id="verdict"></div>
+<ul id="list"><li class="empty">Katalog wird geladen …</li></ul>
+
+<div id="cam">
+  <div id="hint">Strichcode auf der Rückseite anvisieren</div>
+  <video id="video" playsinline muted></video>
+  <div class="bar"><button id="close" style="flex:1">Schließen</button></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let BOOKS = [], BY_ISBN = new Map();
+
+// Umlaute und Satzzeichen weg: "Bänziger" muss auf "banziger" treffen, sonst findet
+// niemand etwas, der es unterwegs schnell eintippt.
+const fold = s => (s || "").toLowerCase()
+  .replace(/ä/g,"a").replace(/ö/g,"o").replace(/ü/g,"u").replace(/ß/g,"ss")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/[^a-z0-9]+/g," ").trim();
+
+const digits = s => (s || "").replace(/[^0-9Xx]/g, "").toUpperCase();
+
+/** ISBN-10 → ISBN-13, damit beide Schreibweisen dasselbe Buch treffen. */
+function canonical(raw) {
+  const d = digits(raw);
+  if (d.length === 13) return d;
+  if (d.length !== 10) return d;
+  const core = "978" + d.slice(0, 9);
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += (i % 2 ? 3 : 1) * Number(core[i]);
+  return core + ((10 - sum % 10) % 10);
+}
+
+function stars(n) { return n > 0 ? "★".repeat(n) + "☆".repeat(5 - n) : ""; }
+
+function render(items, note) {
+  const list = $("#list");
+  list.innerHTML = "";
+  if (!items.length) {
+    list.innerHTML = '<li class="empty">' + (note || "Nichts gefunden.") + "</li>";
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const b of items.slice(0, 300)) {
+    const li = document.createElement("li");
+    const cover = b.c
+      ? '<img loading="lazy" src="cover/' + encodeURIComponent(b.c) + '" alt="">'
+      : '<div class="ph"></div>';
+    li.innerHTML = cover +
+      '<div><div class="t"></div><div class="a"></div><div class="stars">' + stars(b.r) + "</div></div>" +
+      '<div class="badge">' + (b.g ? "gelesen" : "ungelesen") + (b.y ? " · " + b.y : "") + "</div>";
+    li.querySelector(".t").textContent = b.t;
+    li.querySelector(".a").textContent = b.a || "—";
+    frag.appendChild(li);
+  }
+  list.appendChild(frag);
+}
+
+function search(term) {
+  $("#verdict").className = "";
+  const q = fold(term);
+  if (!q) { render(BOOKS); return; }
+
+  // Eingetippte oder eingescannte Ziffernfolge: erst als ISBN prüfen.
+  const d = digits(term);
+  if (d.length === 10 || d.length === 13) { judge(d); return; }
+
+  const words = q.split(" ");
+  const hits = BOOKS.filter(b => {
+    const hay = b._s;
+    return words.every(w => hay.includes(w));
+  });
+  render(hits);
+}
+
+/** Das Urteil für einen Strichcode — die eigentliche Frage im Laden. */
+function judge(code) {
+  const key = canonical(code);
+  const hit = BY_ISBN.get(key);
+  const v = $("#verdict");
+  if (hit) {
+    v.className = "have";
+    v.innerHTML = "<h2>Hast du schon</h2><p></p>";
+    v.querySelector("p").textContent =
+      hit.t + (hit.a ? " · " + hit.a : "") + (hit.g ? " · gelesen" : " · noch ungelesen");
+    render([hit]);
+  } else {
+    // Bewusst zurückhaltend formuliert. „Nicht im Bestand" wäre eine Behauptung, die
+    // diese Nummer nicht trägt: Bücher ohne ISBN stehen gar nicht im Index, und
+    // Geschwisterausgaben tragen eine andere Nummer als der eigene Eintrag — die
+    // Hörbuchfassung eines Titels hat ihre eigene. Ein falsches „hast du nicht" ist
+    // der teure Fehler, denn danach kauft man doppelt.
+    v.className = "miss";
+    v.innerHTML = "<h2>Unter dieser Nummer nicht</h2><p></p>";
+    v.querySelector("p").textContent =
+      "Zu " + key + " steht kein Eintrag. Andere Ausgabe? Dann nach dem Titel suchen.";
+    render([], "Nichts zu dieser Nummer — nach dem Titel suchen.");
+  }
+}
+
+fetch("katalog.json", { cache: "no-cache" })
+  .then(r => r.json())
+  .then(data => {
+    BOOKS = data.books;
+    for (const b of BOOKS) {
+      b._s = fold(b.t) + " " + fold(b.a);
+      if (b.i) BY_ISBN.set(b.i, b);
+    }
+    $("#count").textContent = data.count.toLocaleString("de-DE") + " Bücher";
+    $("#stamp").textContent = "Stand " + data.exported;
+    render(BOOKS);
+  })
+  .catch(() => { $("#list").innerHTML = '<li class="empty">Katalog nicht ladbar.</li>'; });
+
+$("#q").addEventListener("input", e => search(e.target.value));
+
+/* ---- Barcode über die Kamera. Nur wo der Browser es selbst kann; ohne
+       Fremdbibliothek bleibt die Seite eine einzige Datei ohne Abhängigkeiten. ---- */
+const canScan = "BarcodeDetector" in window && navigator.mediaDevices?.getUserMedia;
+if (canScan) $("#scan").hidden = false;
+
+let stream = null, ticking = false;
+
+async function openCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } }, audio: false
+    });
+  } catch { alert("Kamera nicht verfügbar."); return; }
+  $("#video").srcObject = stream;
+  await $("#video").play();
+  $("#cam").style.display = "flex";
+  // EAN-13 ist der Strichcode auf jedem Buch; ISBN-13 ist genau diese Zahl.
+  const detector = new BarcodeDetector({ formats: ["ean_13"] });
+  ticking = true;
+  const tick = async () => {
+    if (!ticking) return;
+    try {
+      const found = await detector.detect($("#video"));
+      if (found.length) {
+        const code = found[0].rawValue;
+        closeCamera();
+        $("#q").value = code;
+        judge(code);
+        if (navigator.vibrate) navigator.vibrate(40);
+        return;
+      }
+    } catch {}
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function closeCamera() {
+  ticking = false;
+  $("#cam").style.display = "none";
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+$("#scan").addEventListener("click", openCamera);
+$("#close").addEventListener("click", closeCamera);
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
