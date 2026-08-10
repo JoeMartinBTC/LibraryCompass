@@ -12,9 +12,9 @@
  * Layout-Korrektur 1825 Cover erneut übers Mobilnetz geholt — 31 MB dafür, dass
  * ein Knopf umzieht. Die Cover-Nummer steigt nur, wenn sich am Bildformat etwas
  * ändert. */
-const SHELL = "shell-v2";
+const SHELL = "shell-v3";
 const COVERS = "cover-v1";
-const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
+const CORE = ["./", "./index.html", "./ean.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(SHELL).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

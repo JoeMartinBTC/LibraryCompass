@@ -47,5 +47,29 @@ For a real lock, put HTTP basic auth in front of the directory.
 - **A sibling edition carries a different number.** Your entry may hold the audiobook's
   ISBN while you are scanning the print run. The page therefore says „not under this
   number" instead of „not in your library" — a wrong *no* is what makes you buy twice.
-- The scan button only appears where the browser has `BarcodeDetector` (Safari on iOS 17+,
-  Chrome on Android). Everywhere else the search field still works.
+### The scanner reads the barcode itself
+
+`BarcodeDetector` is missing exactly where this page is used: Safari has it **off by
+default** through version 26, Firefox does not have it at all. On the iPhone the scan
+button therefore never appeared — the first version tied it to that API.
+
+So `ean.js` decodes EAN-13 on its own: image row → light/dark run lengths → digits by
+pattern match → first digit from the parity pattern → check digit. About 240 lines,
+no dependency, works offline. A ready-made library would have been 400 KB of foreign
+code and a runtime dependency, against this page's whole premise.
+
+Three guards stand between a camera frame and an answer, and each one was earned:
+
+- **Check digit** — the obvious one.
+- **Width consistency**: the runs from start to end must add up to 95 × module width.
+  Without it, random noise assembled a code that passed the check digit.
+- **Three agreeing rows, and a minimum module width of 1.6 px.** Two rows still let noise
+  through: `9511145768041` came out of five different random images. A real barcode in a
+  camera frame is coarser than that; below it the book is simply too far away.
+
+Run the tests with `node viewer/ean.test.mjs` — 58 cases: five codes across module widths
+2 to 6, noise up to ±70, blur, inverted print, narrow quiet zones, plus 40 rounds of pure
+noise that must yield nothing.
+
+An invented number is the worst outcome here: it answers „do I already own this?" with a
+different book.

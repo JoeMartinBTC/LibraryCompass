@@ -197,12 +197,15 @@ fetch("katalog.json", { cache: "no-cache" })
 
 $("#q").addEventListener("input", e => search(e.target.value));
 
-/* ---- Barcode über die Kamera. Nur wo der Browser es selbst kann; ohne
-       Fremdbibliothek bleibt die Seite eine einzige Datei ohne Abhängigkeiten. ---- */
-const canScan = "BarcodeDetector" in window && navigator.mediaDevices?.getUserMedia;
+/* ---- Barcode über die Kamera. ----
+   Der Knopf hängt an der **Kamera**, nicht an `BarcodeDetector`: die Schnittstelle ist
+   in Safari bis Version 26 standardmäßig abgeschaltet und in Firefox gar nicht da —
+   auf dem iPhone erschien der Knopf deshalb nie. Wo sie fehlt, liest `ean.js` den
+   Strichcode selbst. */
+const canScan = !!navigator.mediaDevices?.getUserMedia;
 if (canScan) $("#scan").hidden = false;
 
-let stream = null, ticking = false;
+let stream = null, ticking = false, ownDecoder = null, canvas = null;
 
 async function openCamera() {
   try {
@@ -213,20 +216,45 @@ async function openCamera() {
   $("#video").srcObject = stream;
   await $("#video").play();
   $("#cam").style.display = "flex";
+
   // EAN-13 ist der Strichcode auf jedem Buch; ISBN-13 ist genau diese Zahl.
-  const detector = new BarcodeDetector({ formats: ["ean_13"] });
+  let detector = null;
+  if ("BarcodeDetector" in window) {
+    try { detector = new BarcodeDetector({ formats: ["ean_13"] }); } catch { detector = null; }
+  }
+  if (!detector && !ownDecoder) {
+    // Erst laden, wenn wirklich gescannt wird — wer nur sucht, holt ihn nie.
+    try { ownDecoder = await import("./ean.js"); }
+    catch { alert("Der Strichcode-Leser ließ sich nicht laden."); closeCamera(); return; }
+  }
+  if (!canvas) canvas = document.createElement("canvas");
+
+  const found = code => {
+    closeCamera();
+    $("#q").value = code;
+    judge(code);
+    if (navigator.vibrate) navigator.vibrate(40);
+  };
+
   ticking = true;
   const tick = async () => {
     if (!ticking) return;
+    const video = $("#video");
     try {
-      const found = await detector.detect($("#video"));
-      if (found.length) {
-        const code = found[0].rawValue;
-        closeCamera();
-        $("#q").value = code;
-        judge(code);
-        if (navigator.vibrate) navigator.vibrate(40);
-        return;
+      if (detector) {
+        const hits = await detector.detect(video);
+        if (hits.length) return found(hits[0].rawValue);
+      } else if (video.videoWidth) {
+        // Auf 720 Pixel Breite herunterrechnen: schmaler wird jedes Modul zu fein,
+        // breiter kostet nur Rechenzeit auf dem Telefon.
+        const scale = Math.min(1, 720 / video.videoWidth);
+        canvas.width = Math.round(video.videoWidth * scale);
+        canvas.height = Math.round(video.videoHeight * scale);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const hit = ownDecoder.findEAN13(frame.data, canvas.width, canvas.height);
+        if (hit) return found(hit);
       }
     } catch {}
     requestAnimationFrame(tick);
