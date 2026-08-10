@@ -120,6 +120,80 @@ cover cache, API key) — never in the repo. A scheduled job snapshots the datab
 exports a CSV three times a day; see **[docs/backup.md](docs/backup.md)** for the restore
 procedure.
 
+## Using the app
+
+The interface is German; the labels below are quoted exactly as they appear on screen.
+Nothing here needs an account, and nothing leaves the machine except the catalogue
+queries that fetch a title or a cover.
+
+### The window
+
+| Where | What sits there |
+|---|---|
+| **Left — sidebar** | The four views of the stock (*Alle Bücher · Gelesen · Ungelesen · Bewertet*) with their counts, the *Lücken* basket once it has content, the **„Buch hinzufügen"** button, and **„Delicious Library importieren"** at the very bottom. Drag its right edge to resize it; the toolbar's left icon hides it — then „Buch hinzufügen" returns as a floating button over the covers |
+| **Middle** | Search, zoom, sort, grid/list toggle and the light/dark switch on top; below them the heading, the count line and the statistics cards (*„Statistik"* folds them away); then the books, loaded in blocks of 60 as you scroll |
+| **Right — „Details"** | Appears when you click a book. Cover, title, author, year and pages, the author-bibliography button, your rating, read date and comment, the ISBN, and *„Buch löschen"* |
+
+### Everyday tasks
+
+| You want to … | Do this |
+|---|---|
+| **Add a book by barcode** | ⌘K, hold the barcode 25–40 cm from the camera until it is sharp. Scanned titles are listed as they arrive; *„Fertig"* closes the sheet. An iPhone as Continuity Camera focuses far better than the built-in one |
+| **Add a book by ISBN** | ⌘N, type or paste the ISBN — a copied Amazon product URL works too. Title, author, year, pages and cover are fetched for you |
+| **Add a book that has no ISBN** | Same dialog. If the input is not an ISBN (or is an Amazon ASIN), the sheet says so and asks for title and author instead. The author is required — without it no cover can ever be found for that entry |
+| **Rate a book** | Click a star in the detail panel; *„zurücksetzen"* clears the rating. Saved instantly, no OK button anywhere |
+| **Record when you read it** | *„Gelesen am"* — pick a date, or hit *„Heute"* |
+| **Write a note** | The *„Kommentar"* field. Saved as you type |
+| **Find a book** | The search field matches title *and* author, any part of the word. The clear button is the ✕ inside the field |
+| **Sort** | The toolbar menu: *Titel A–Z · Autor A–Z · Erscheinungsjahr, neueste zuerst · Bewertung, beste zuerst · Zuletzt gelesen · Zuletzt hinzugefügt · Ohne Cover zuerst.* The last one pulls everything still missing artwork to the front so it can be worked through in one pass |
+| **See more or fewer covers at once** | The zoom control, 70–170 % in steps of ten |
+| **Delete a book** | *„Buch löschen"*, then confirm — the dialog names the title, because this is the one step nothing undoes. Rating and comment go with it; the cover file stays on disk, since two entries may share one picture |
+| **Get everything out** | ⌘E writes a CSV with all ten fields (RFC 4180 with BOM, so Excel shows the umlauts) |
+| **Mark a whole shelf as read** | *Ablage → „Alle als gelesen markieren"* gives every book without a read date the date it was added |
+
+### A cover the app could not find
+
+For older German editions and self-published titles, no source a program is allowed to
+query carries a picture — but a person can see it in their browser. So the detail panel
+takes it from you, three ways:
+
+1. **Drag** an image from a browser onto the cover — a frame and *„Bild hier ablegen"* mark the target
+2. **„Einfügen"** takes the picture from the clipboard
+3. **„Suchen"** opens title and author as a book search in your own browser, so you can go and find one
+
+A picture you assign by hand always wins over the automatic passes, and it stays assigned:
+withdrawing a wrong cover is remembered, so the next backfill will not fetch it again.
+
+### „Autorbibliografie" — what else did this author write?
+
+The button in the detail panel asks the German National Library for the author's works,
+matches them against your shelf, and puts what is missing into the **„Lücken"** basket in
+the sidebar, with covers.
+
+- Gaps are **counted separately and never join the stock** — not in the counts, not in the
+  CSV export, not in the statistics. They are stored as their own kind of record
+- Only German print editions count. Audiobooks, e-books, translations and editions of a
+  book you already own are filtered out — [docs/bibliografie.md](docs/bibliografie.md)
+  lists the case behind each of those rules
+- Remove one gap with the ✕ on its cover; empty the whole basket with the wastebasket on
+  the *„Lücken"* row. Both leave the stock untouched, and a new run brings the list back
+- Running it again for the same author **replaces** that author's gaps, so a book that has
+  meanwhile moved onto the shelf drops out by itself
+
+### Keyboard
+
+| Keys | Action |
+|---|---|
+| ⌘K | Scan a book |
+| ⌘N | Add by ISBN |
+| ⌘E | Export the library as CSV |
+
+### Where your data lives
+
+`~/Library/Application Support/LibraryCompass/` — the database, the cover cache, and the
+optional Google Books key. Never in the repo, never on a server. Back it up like any other
+folder; [docs/backup.md](docs/backup.md) describes the restore.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
