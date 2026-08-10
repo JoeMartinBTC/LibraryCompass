@@ -26,12 +26,18 @@
     padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
   }
   header { padding:14px 16px 10px; position:sticky; top:0; background:var(--bg); z-index:5; }
-  .row { display:flex; gap:8px; align-items:center; }
+  /* Suchfeld und Scan-Knopf untereinander, beide über die volle Breite.
+     Nebeneinander wurde der Knopf auf dem Telefon aus dem Bild gedrängt — das
+     Suchfeld nimmt sich den Platz, und die wichtigste Taste war nicht mehr da. */
   input[type=search] {
-    flex:1; min-width:0; font-size:17px; color:var(--ink);
+    display:block; width:100%; font-size:17px; color:var(--ink);
     background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:13px 14px; appearance:none;
   }
+  /* `:not([hidden])`, weil ein schlichtes `display:block` das hidden-Attribut
+     überstimmt — der Knopf stünde dann auch dort, wo der Browser gar nicht
+     scannen kann, und führte ins Leere. */
+  #scan:not([hidden]) { display:block; width:100%; margin-top:8px; }
   input[type=search]:focus { outline:none; border-color:var(--accent); }
   button {
     font:inherit; font-size:15px; color:var(--ink); background:var(--card);
@@ -69,11 +75,9 @@
 <body>
 
 <header>
-  <div class="row">
-    <input type="search" id="q" placeholder="Titel oder Autor" autocomplete="off"
-           autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-    <button id="scan" class="primary" hidden>Scannen</button>
-  </div>
+  <input type="search" id="q" placeholder="Titel oder Autor" autocomplete="off"
+         autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  <button id="scan" class="primary" hidden>Strichcode scannen</button>
   <div class="meta"><span id="count">…</span><span id="stamp"></span></div>
 </header>
 

@@ -7,9 +7,13 @@
  *   - Cover: erst Cache. Bilder ändern sich nie, und 1826 Anfragen übers Mobilnetz
  *     wären teuer und langsam.
  */
-const VERSION = "v1";
-const SHELL = "shell-" + VERSION;
-const COVERS = "cover-" + VERSION;
+/* Zwei getrennte Versionen, mit Absicht: eine Änderung an der Seite darf den
+ * Bilder-Cache nicht mitreißen. Bei einer gemeinsamen Nummer hätte jede
+ * Layout-Korrektur 1825 Cover erneut übers Mobilnetz geholt — 31 MB dafür, dass
+ * ein Knopf umzieht. Die Cover-Nummer steigt nur, wenn sich am Bildformat etwas
+ * ändert. */
+const SHELL = "shell-v2";
+const COVERS = "cover-v1";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
