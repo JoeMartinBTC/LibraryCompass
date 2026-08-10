@@ -16,6 +16,19 @@ public enum CoverKey {
         let normalizedISBN = ISBN.normalized(isbn)
         if !normalizedISBN.isEmpty { return normalizedISBN }
 
+        return titleHash(title: title, author: author)
+    }
+
+    /// Der Titel-Hash **unabhängig von der ISBN**.
+    ///
+    /// `stem` gibt bei einem Buch mit ISBN die ISBN zurück — richtig für Dateinamen, aber
+    /// unbrauchbar, wenn zwei Einträge sich eine ISBN teilen. Am 2026-08-10 stand
+    /// „Falsche Schuld. Private London" zweimal im Bestand, einmal als `3442481163` und
+    /// einmal als `9783442481163`; ein Schlüssel über die ISBN traf beide, und der
+    /// falsche Verfasser ließ sich an keinem von beiden korrigieren.
+    ///
+    /// Über Titel und Verfasser bleibt jede Dublette einzeln ansprechbar.
+    public static func titleHash(title: String, author: String) -> String? {
         let basis = fold(title) + "|" + fold(author)
         guard basis != "|" else { return nil }
         return "t-" + String(fnv1a(basis), radix: 16)

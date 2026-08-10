@@ -161,3 +161,48 @@ entry without an ISBN.
 The author is required on that path, deliberately. Without an ISBN the only remaining cover
 source is the title search, and that search needs the author as its anchor — a title alone
 attaches whatever happens to match. „Flashback" returned nine different books this way.
+
+## Filling in missing authors
+
+The author is not decoration. It is the **anchor of every further search**: without it the
+title search must not run at all, because it has nothing to check its hits against —
+„Flashback" alone returns nine different books. On 2026-08-10, 30 of the 114 coverless
+books had no author and were therefore permanently excluded from cover lookup.
+
+```bash
+LibraryCompass --fetch-authors
+```
+
+The rule is the strictest one available: **one title, one author.** If the records for a
+title name more than one person, the field stays empty. A wrong author pulls a wrong cover
+in behind it, and then there are two errors in the record instead of one gap.
+
+### Uniqueness must be judged on the whole list
+
+The first version of this pass asked for ten records and treated uniqueness *among those
+ten* as uniqueness. It wrote 80 authors, 40 of which could not be substantiated:
+
+- „Phantom" → „Matsuri", while the DNB holds **4921** records for that word
+- „Falsche Schuld. Private London" → „Minninger" instead of Patterson, at 65 hits
+
+All 80 were rolled back. The pass now requests 100 records and compares `numberOfRecords`
+against what actually arrived; if the list is truncated, it returns nothing. Whoever sees
+only an excerpt may not rule on uniqueness.
+
+Co-authors of one book are not a contradiction — „Operation Seewespe" lists Cussler and
+Morrison, and that is one book, not two opinions about who wrote it. Only the first author
+of each record counts.
+
+## Correcting an author by hand
+
+```bash
+LibraryCompass --apply-authors assignment.tsv
+```
+
+Same format as `--apply-covers`: key, tab, value; an empty value clears the field. This is
+the way back when a pass gets it wrong — without it, 80 unverifiable authors would have
+stayed in the library for good.
+
+The key may be the title hash even for books that *have* an ISBN. Two entries of the same
+book can carry the same ISBN in both notations — `3442481163` and `9783442481163` — and a
+key over the ISBN then matches both, leaving neither correctable.

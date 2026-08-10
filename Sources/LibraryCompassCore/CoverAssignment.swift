@@ -74,9 +74,11 @@ public enum CoverAssignment {
     static func matches(key: String, in books: [Book]) -> [Book] {
         // Zuerst der Titel-Hash: `ISBN.normalized` behält alle Ziffern, und in `t-a1b2`
         // stecken welche — ohne diese Weiche gilt der Hash als ISBN und trifft nichts.
+        // Der Titel-Hash gilt **unabhängig von der ISBN**: nur so bleibt eine Dublette
+        // einzeln ansprechbar, wenn beide Einträge dieselbe ISBN führen.
         if key.hasPrefix("t-") {
             return books.filter {
-                CoverKey.stem(isbn: $0.isbn, title: $0.title, author: $0.author) == key
+                CoverKey.titleHash(title: $0.title, author: $0.author) == key
             }
         }
         let wanted = ISBN.normalized(key)

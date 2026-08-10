@@ -57,9 +57,19 @@ enum LaunchOptions {
     /// `--fetch-isbns` schlägt fehlende ISBNs über Titel und Verfasser nach und beendet die App.
     static var fetchesISBNs: Bool { CommandLine.arguments.contains("--fetch-isbns") }
 
+    /// `--fetch-authors` trägt fehlende Verfasser nach und beendet die App.
+    static var fetchesAuthors: Bool { CommandLine.arguments.contains("--fetch-authors") }
+
     /// `--apply-covers <datei>` trägt von Hand geprüfte Cover ein und beendet die App.
     static var applyCoversPath: String? {
         guard let index = CommandLine.arguments.firstIndex(of: "--apply-covers"),
+              CommandLine.arguments.count > index + 1 else { return nil }
+        return CommandLine.arguments[index + 1]
+    }
+
+    /// `--apply-authors <datei>` setzt oder leert Verfasser und beendet die App.
+    static var applyAuthorsPath: String? {
+        guard let index = CommandLine.arguments.firstIndex(of: "--apply-authors"),
               CommandLine.arguments.count > index + 1 else { return nil }
         return CommandLine.arguments[index + 1]
     }
@@ -145,6 +155,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
+        if let path = LaunchOptions.applyAuthorsPath {
+            Task { @MainActor in
+                exit(Self.applyAuthors(from: path) ? 0 : 1)
+            }
+            return
+        }
+
         if let path = LaunchOptions.applyCoversPath {
             Task { @MainActor in
                 exit(await Self.applyCovers(from: path) ? 0 : 1)
@@ -152,11 +169,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        if LaunchOptions.fetchesCovers || LaunchOptions.fetchesISBNs {
+        if LaunchOptions.fetchesCovers || LaunchOptions.fetchesISBNs || LaunchOptions.fetchesAuthors {
             Task { @MainActor in
-                let complete = LaunchOptions.fetchesISBNs
-                    ? await Self.fetchISBNs()
-                    : await Self.fetchCovers()
+                let complete: Bool
+                if LaunchOptions.fetchesAuthors {
+                    complete = await Self.fetchAuthors()
+                } else if LaunchOptions.fetchesISBNs {
+                    complete = await Self.fetchISBNs()
+                } else {
+                    complete = await Self.fetchCovers()
+                }
                 // Unvollständiger Lauf muss sich am Exit-Code zeigen — am 2026-08-08
                 // endete er bei 1188 von 1780 und meldete trotzdem Erfolg.
                 exit(complete ? 0 : 1)
@@ -205,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Ein Pflegelauf darf nicht daran sterben, dass jemand das Fenster schließt.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        !LaunchOptions.fetchesCovers && !LaunchOptions.fetchesISBNs
+        !LaunchOptions.fetchesCovers && !LaunchOptions.fetchesISBNs && !LaunchOptions.fetchesAuthors
             && LaunchOptions.applyCoversPath == nil
     }
 
@@ -233,6 +255,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return report.isComplete
         } catch {
             FileHandle.standardError.write(Data("ABBRUCH — Zuweisung gescheitert: \(error)\n".utf8))
+            return false
+        }
+    }
+
+    /// Setzt oder leert Verfasser aus einer Datei — der Weg zurück, wenn ein Nachlauf
+    /// danebengriff.
+    @MainActor
+    static func applyAuthors(from path: String) -> Bool {
+        guard let container = try? LibraryStore.defaultContainer() else {
+            FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
+            return false
+        }
+        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
+            FileHandle.standardError.write(Data("Zuweisungsdatei nicht lesbar: \(path)\n".utf8))
+            return false
+        }
+        do {
+            let report = try AuthorAssignment.apply(CoverAssignment.parse(text),
+                                                    context: ModelContext(container)) { done, total, title in
+                print("[\(done)/\(total)] \(title)")
+                fflush(stdout)
+            }
+            for problem in report.problems { print("übergangen — \(problem)") }
+            print(report.summary)
+            fflush(stdout)
+            return report.isComplete
+        } catch {
+            FileHandle.standardError.write(Data("ABBRUCH — Verfasser-Zuweisung gescheitert: \(error)\n".utf8))
+            return false
+        }
+    }
+
+    /// Trägt fehlende Verfasser nach. Erst danach darf für diese Bücher die Titelsuche
+    /// laufen — ohne Verfasser fehlt ihr der Anker.
+    @MainActor
+    static func fetchAuthors() async -> Bool {
+        guard let container = try? LibraryStore.defaultContainer() else {
+            FileHandle.standardError.write(Data("Store nicht lesbar\n".utf8))
+            return false
+        }
+        do {
+            let report = try await AuthorBackfill.run(context: ModelContext(container)) { done, total, title in
+                print("[\(done)/\(total)] \(title)")
+                fflush(stdout)
+            }
+            print(report.summary)
+            fflush(stdout)
+            return report.isComplete
+        } catch {
+            FileHandle.standardError.write(Data("ABBRUCH — Verfasser-Nachlauf gescheitert: \(error)\n".utf8))
             return false
         }
     }

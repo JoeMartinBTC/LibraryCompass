@@ -509,7 +509,7 @@ public enum DNB {
     /// Suche über Titel und Person — für die ~137 Bestandsbücher, die gar keine ISBN
     /// führen. Ohne ISBN bleibt die ausgabegenaue Coverquelle (Amazon über ISBN-10)
     /// unerreichbar.
-    public static func searchURL(title: String, author: String) -> URL {
+    public static func searchURL(title: String, author: String, maximumRecords: Int = 10) -> URL {
         var components = URLComponents(string: "https://services.dnb.de/sru/dnb")!
         components.queryItems = [
             URLQueryItem(name: "version", value: "1.1"),
@@ -520,7 +520,7 @@ public enum DNB {
                          ? "TIT=\(SearchTitle.simplify(title))"
                          : "TIT=\(SearchTitle.simplify(title)) and PER=\(surname(of: author))"),
             URLQueryItem(name: "recordSchema", value: "oai_dc"),
-            URLQueryItem(name: "maximumRecords", value: "10")
+            URLQueryItem(name: "maximumRecords", value: String(maximumRecords))
         ]
         return components.url!
     }
@@ -668,6 +668,54 @@ public enum DNB {
         return records(data)
             .filter { TitleMatch.sameWork(title, $0.title) && $0.isPrint && $0.hasAuthorStem(author) }
             .flatMap(\.isbns)
+    }
+
+    /// Der Verfasser, **wenn der Titel nur einen kennt**.
+    ///
+    /// Anders als `author(from:…)` verlangt das keinen einzelnen Datensatz: derselbe Titel
+    /// erscheint als Taschenbuch, gebunden und als Lizenzausgabe, das sind drei Datensätze
+    /// und trotzdem ein Verfasser. Entscheidend ist, dass alle Treffer **auf denselben
+    /// Menschen zeigen** — sonst bleibt das Feld leer.
+    ///
+    /// Verglichen wird über `sameSurname`, damit die Schreibweisen des Katalogs
+    /// („Coben, Harlan" neben „Coben, H.") nicht als zwei Personen zählen.
+    /// ⚠️ Verlangt, dass die Antwort **die ganze Trefferliste** enthält. Eindeutigkeit
+    /// innerhalb der ersten zehn Datensätze ist keine Eindeutigkeit: „Phantom" wurde am
+    /// 2026-08-10 mit „Matsuri" belegt, weil unter den ersten zehn nur ein Manga auf den
+    /// Titel passte — die DNB führt zu dem Wort **4921** Datensätze. „Falsche Schuld"
+    /// bekam „Minninger" statt Patterson, bei 65 Treffern insgesamt.
+    ///
+    /// Wer nur einen Ausschnitt sieht, darf über Eindeutigkeit nicht urteilen.
+    public static func soleAuthor(from data: Data, title: String) -> String? {
+        guard let total = numberOfRecords(in: data) else { return nil }
+        let all = records(data)
+        guard total <= all.count else { return nil }
+
+        // Je Datensatz zählt der **erste** Verfasser. Co-Autoren desselben Buchs sind
+        // kein Widerspruch — „Operation Seewespe" führt Cussler und Morrison, und das
+        // ist ein Buch, nicht zwei Meinungen darüber, wer es geschrieben hat.
+        let named = all
+            .filter { TitleMatch.sameWork(title, $0.title) }
+            .compactMap { record -> String? in
+                let writers = record.creators.filter { $0.contains("[Verfasser") }
+                guard let first = writers.first else { return nil }
+                return first.replacingOccurrences(of: "\\[[^\\]]+\\]", with: "",
+                                                  options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        guard let candidate = named.first, !candidate.isEmpty else { return nil }
+        guard named.allSatisfy({ AuthorMatch.sameSurname(surname(of: candidate), surname(of: $0)) })
+        else { return nil }
+        return candidate
+    }
+
+    /// Wie viele Treffer hat die Suche insgesamt — unabhängig davon, wie viele Datensätze
+    /// die Antwort mitschickt.
+    public static func numberOfRecords(in data: Data) -> Int? {
+        guard let text = String(data: data, encoding: .utf8),
+              let range = text.range(of: "numberOfRecords>[0-9]+", options: .regularExpression)
+        else { return nil }
+        return Int(text[range].split(separator: ">")[1])
     }
 
     /// Der Verfasser des belegten Datensatzes. Für Bestandsbücher, die selbst keinen führen.
@@ -969,6 +1017,19 @@ public actor MetadataLookup {
     public func isbn(title: String, author: String) async throws -> String? {
         guard let data = try await searchRecords(title: title, author: author) else { return nil }
         return DNB.isbn(from: data, title: title, author: author)
+    }
+
+    /// Der Verfasser, wenn der Titel im Katalog nur einen kennt — sonst `nil`.
+    ///
+    /// Holt bewusst **100** Datensätze statt der üblichen zehn: die Regel verlangt die
+    /// vollständige Trefferliste, und bei zehn wäre fast jeder Titel abgeschnitten.
+    public func soleAuthor(title: String) async throws -> String? {
+        let query = SearchTitle.simplify(title)
+        guard !query.isEmpty else { return nil }
+        let (data, status) = try await client.get(DNB.searchURL(title: query, author: "",
+                                                                maximumRecords: 100))
+        guard status == 200 else { return nil }
+        return DNB.soleAuthor(from: data, title: title)
     }
 
     /// Verfasser aus dem belegten Datensatz — füllt die Lücke bei Büchern ohne Autor.

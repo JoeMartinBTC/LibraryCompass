@@ -162,3 +162,40 @@ final class CoverAssignmentApplyTests: XCTestCase {
         XCTAssertFalse(report.isComplete)
     }
 }
+
+/// Zwei Einträge desselben Buchs führen dieselbe ISBN in zwei Schreibweisen — dann trifft
+/// ein Schlüssel über die ISBN beide, und keiner von beiden lässt sich korrigieren.
+/// Am 2026-08-10 an „Falsche Schuld. Private London" aufgelaufen: `3442481163` und
+/// `9783442481163`, und der falsche Verfasser blieb stehen.
+@MainActor
+final class DuplicateAddressingTests: XCTestCase {
+
+    func testTitleHashAddressesOneEntryOfADuplicatePair() throws {
+        let container = try LibraryStore.inMemoryContainer()
+        let context = ModelContext(container)
+        let ten = Book(isbn: "3442481163", title: "Falsche Schuld. Private London", author: "Falsch")
+        let thirteen = Book(isbn: "9783442481163", title: "Private London - falsche Schuld",
+                            author: "James Patterson")
+        context.insert(ten)
+        context.insert(thirteen)
+        let books = [ten, thirteen]
+
+        let byISBN = CoverAssignment.matches(key: "3442481163", in: books)
+        XCTAssertEqual(byISBN.count, 2, "über die ISBN sind beide gemeint")
+
+        let key = try XCTUnwrap(CoverKey.titleHash(title: ten.title, author: ten.author))
+        let byHash = CoverAssignment.matches(key: key, in: books)
+        XCTAssertEqual(byHash.count, 1)
+        XCTAssertEqual(byHash.first?.author, "Falsch", "der Titel-Hash trifft genau einen")
+    }
+
+    /// Anti: Der Titel-Hash bleibt für Bücher ohne ISBN, was er war.
+    func testTitleHashStillWorksWithoutISBN() throws {
+        let container = try LibraryStore.inMemoryContainer()
+        let context = ModelContext(container)
+        let book = Book(isbn: "", title: "Ohne Nummer", author: "Jemand")
+        context.insert(book)
+        let key = try XCTUnwrap(CoverKey.stem(isbn: "", title: "Ohne Nummer", author: "Jemand"))
+        XCTAssertEqual(CoverAssignment.matches(key: key, in: [book]).count, 1)
+    }
+}
