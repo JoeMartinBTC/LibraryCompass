@@ -25,8 +25,12 @@ about eight seconds.
 ## Put it online
 
 ```bash
-rsync -avz --delete viewer/ -e "ssh -i <key>" <target>:<webroot>/<secret-path>/
+rsync -avz --delete --exclude README.md viewer/ -e "ssh -i <key>" <target>:<webroot>/<secret-path>/
 ```
+
+⚠️ `--exclude README.md`, sonst liegt diese Datei im Web-Root und beschreibt Fremden den
+Aufbau. Am 2026-08-10 zweimal passiert — hier und bei `web/` — und beide Male sofort
+wieder entfernt.
 
 Then open `https://<domain>/<secret-path>/` on the phone and add it to the home screen.
 It works offline afterwards: a service worker keeps the shell and the covers, and asks the
