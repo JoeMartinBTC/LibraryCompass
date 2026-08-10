@@ -101,6 +101,10 @@ enum LaunchOptions {
         switch state {
         case "wide": defaults.set(400.0, forKey: "sidebarWidth")
         case "nostats": defaults.set(false, forKey: "statsOpen")
+        // Kleinste Stufe: zeigt, wie viele Bände auf einen Blick passen. Ohne diesen
+        // Zustand ließen sich die Zoom-Bilder der Produktseite nicht reproduzieren —
+        // sie waren die einzigen, für die es keinen Schalter gab.
+        case "zoom": defaults.set(Zoom.minimum, forKey: "zoom")
         default: break
         }
         if let index = CommandLine.arguments.firstIndex(of: "--appearance"),
@@ -112,7 +116,13 @@ enum LaunchOptions {
     static func makeContainer() -> ModelContainer {
         if isUITest || screenshotPath != nil {
             let container = try! LibraryStore.inMemoryContainer()
-            seed(ModelContext(container))
+            // Schnappschüsse zeigen echte Bücher, der UI-Test die acht festen Demo-Titel,
+            // an denen seine Erwartungen hängen. Beide Wege öffnen den echten Store nicht.
+            if screenshotPath != nil {
+                ShowcaseLibrary.fill(ModelContext(container))
+            } else {
+                seed(ModelContext(container))
+            }
             return container
         }
         if let container = try? LibraryStore.defaultContainer() { return container }
