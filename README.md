@@ -20,8 +20,10 @@ Delicious Library for personal use.
 - **Cover cache and backfill** — one file per book, resumable, an incomplete run
   says so and exits non-zero: **[docs/covers.md](docs/covers.md)**
 - **Pocket viewer** — `--export-web` writes the stock as a small offline page: search,
-  barcode scan, and one answer — do I already own this? Built for the bookshop, not for
-  editing: **[viewer/README.md](viewer/README.md)**
+  barcode scan, and one answer — do I already own this? It decodes EAN-13 itself, because
+  `BarcodeDetector` is off by default in Safari and absent in Firefox — exactly the
+  browsers this gets used in. Built for the bookshop, not for editing:
+  **[viewer/README.md](viewer/README.md)**
 - **Set a cover by hand** — drop an image onto the cover in the detail panel, paste it,
   or hit *Suchen* to open title and author as a book search in your own browser. For older
   German editions and self-published titles no free source carries a picture, so the app
@@ -43,7 +45,7 @@ Out of scope for now: iPhone app, sync.
 ```bash
 ./make-app.sh      # build the .app bundle (SwiftPM release + ad-hoc signing)
 ./install-app.sh   # install to /Applications (resets the TCC camera grant — see docs/scanner.md)
-swift test         # 292 tests, including live network checks
+swift test         # the full suite, including live network checks
 ./ui-test.sh       # XCUI smoke tests via xcodegen project
 ```
 
@@ -101,7 +103,7 @@ The key lives outside the repo, next to the library database.
 |---|---|
 | `Sources/LibraryCompassCore/` | model, store, import/export, query, stats, lookup, cover cache, scan/title logic |
 | `Sources/LibraryCompass/` | SwiftUI app: views, design tokens, app model, barcode scanner |
-| `Tests/LibraryCompassTests/` | 292 tests, including live network checks |
+| `Tests/LibraryCompassTests/` | unit tests, including live network checks — `swift test` is the authority, not a number in this file |
 | `UITests/` | XCUI smoke tests (`./ui-test.sh`) |
 | `docs/` | scanner (camera/TCC pitfalls), lookup strategy, cover cache/backfill, backup & restore, Google Books key setup |
 | `design/handoff/` | design tokens and the static mockup the UI was built against |
