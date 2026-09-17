@@ -39,7 +39,9 @@ network first for the catalogue — an outdated stock is the worst mistake this 
 ⚠️ **What goes on the server is your actual library**: every title, every rating, whether
 you read it. The path is unguessable and the page carries `noindex`, but that is
 obscurity, not a lock. Do **not** list the path in `robots.txt` — that would publish it.
-For a real lock, put HTTP basic auth in front of the directory.
+For a real lock, put HTTP basic auth in front of the directory. The live deployment does
+this in the web server (Caddy `basic_auth` on the viewer path, since 2026-09-17); the
+password is kept outside the repository.
 
 ## What it cannot do
 
