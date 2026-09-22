@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitcoin · Punktwolke</title>
+<meta name="description" content="Point-cloud pressure stamp: any text appears as negative space with a lifted relief. Text and colours adjustable.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23ece2cd'/><text x='12' y='50' font-family='system-ui,sans-serif' font-weight='900' font-size='48' fill='%235c4a34'>B</text></svg>">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #ece2cd;
+    color: #8a7a5e;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    overflow: hidden;
+  }
+  #cloud { position: fixed; inset: 0; width: 100%; height: 100%; }
+
+  /* control panel, paper-toned so it sits in the same world as the drawing */
+  #panel {
+    position: fixed; top: 8px; right: 8px;
+    width: 232px;
+    padding: 12px;
+    background: rgba(236,226,205,0.94);
+    border: 1px solid rgba(110,92,64,0.4);
+    border-radius: 4px;
+    color: #6b5a42;
+    font-size: 12px;
+    z-index: 5;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  body.panel-closed #panel { transform: translateX(calc(100% + 12px)); opacity: 0; }
+  #panel .sec {
+    margin-bottom: 8px;
+    padding-bottom: 3px;
+    font: 600 14px Georgia, serif;
+    color: #5c4a34;
+    border-bottom: 1px solid rgba(110,92,64,0.25);
+  }
+  #panel .row { display: block; margin-bottom: 10px; }
+  #panel .row > span { display: block; margin-bottom: 3px; }
+  #panel input[type=text] {
+    width: 100%;
+    height: 26px;
+    padding: 0 6px;
+    font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #5c4a34;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(110,92,64,0.4);
+    border-radius: 3px;
+  }
+  #panel input[type=color] {
+    width: 100%;
+    height: 26px;
+    padding: 0;
+    background: none;
+    border: 1px solid rgba(110,92,64,0.4);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  #panel .pair { display: flex; gap: 8px; }
+  #panel .pair .row { flex: 1; }
+  #panel input[type=range] { width: 100%; accent-color: #5c4a34; }
+  #panel .row .val { float: right; color: #8a7a5e; }
+  #panel .btns { display: flex; gap: 6px; margin-top: 12px; }
+  #panel button.act {
+    flex: 1;
+    height: 30px;
+    font: 400 12px ui-sans-serif, system-ui, sans-serif;
+    color: #5c4a34;
+    background: #f2ead6;
+    border: 1px solid rgba(110,92,64,0.4);
+    border-radius: 15px;
+    cursor: pointer;
+  }
+  #panel button.act:hover { background: #f7f1e2; }
+  #panelToggle {
+    position: fixed; top: 8px; right: 248px;
+    width: 29px; height: 29px;
+    background: rgba(236,226,205,0.94);
+    border: 1px solid rgba(110,92,64,0.4);
+    border-radius: 4px;
+    color: #5c4a34; cursor: pointer;
+    z-index: 6;
+    transition: right 0.25s ease;
+  }
+  body.panel-closed #panelToggle { right: 8px; }
+</style>
+</head>
+<body>
+
+<canvas id="cloud"></canvas>
+
+<button id="panelToggle" aria-label="Einstellungen ein-/ausblenden">›</button>
+
+<div id="panel">
+  <div class="sec">Einstellungen</div>
+
+  <label class="row">
+    <span>Text</span>
+    <input type="text" id="txt" value="Bitcoin" spellcheck="false" autocomplete="off">
+  </label>
+
+  <div class="pair">
+    <label class="row">
+      <span>Hintergrund</span>
+      <input type="color" id="bg" value="#ece2cd">
+    </label>
+    <label class="row">
+      <span>Punkte</span>
+      <input type="color" id="ink" value="#5c4a34">
+    </label>
+  </div>
+
+  <label class="row">
+    <span>Grösse <span class="val" id="scaleVal">0.5</span></span>
+    <input type="range" id="scale" min="0.2" max="1" step="0.05" value="0.5">
+  </label>
+
+  <label class="row">
+    <span>Dichte <span class="val" id="densVal">150</span></span>
+    <input type="range" id="dens" min="40" max="300" step="5" value="150">
+  </label>
+
+  <div class="btns">
+    <button class="act" id="replay" type="button">Neu abspielen</button>
+    <button class="act" id="reset" type="button">Zurücksetzen</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ------------------------------------------------------------- point cloud
+
+   A flat cloud of specks drifts on paper. A blurred glyph works as a pressure
+   stamp: every speck walks down the stamp's gradient until it is outside the
+   letterform, so the text appears as negative space. Clones of nearby specks
+   then fly into a raster inside the letters and lift by the local relief
+   height, revealed as a top-to-bottom scan.                                */
+
+const canvas = document.getElementById('cloud');
+const ctx = canvas.getContext('2d');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const C = {
+  text: 'Bitcoin',
+  bg: '#ece2cd', ink: '#5c4a34',
+  pressDur: 1000, reliefDur: 200,        // stamp ramp, relief ramp
+  density: 150,                          // px² of paper per speck
+  cloudSpring: 0.004, cloudFade: 0.5,
+  glyphScale: 0.5, offsetY: 20,
+  lift: 60, reliefBlur: 8, rowGap: 5, colGap: 5,
+  scanDur: 500, rowSweep: 440, flightSpring: 0.02, waveAmp: 0.4,
+  mouseR: 90, mousePush: 4,
+};
+const DEFAULTS = { ...C };
+const RELIEF_AT = () => C.pressDur;
+
+const P = { pts: [], gpts: [], mouse: { x: -1e9, y: -1e9 }, started: 0, last: 0, tones: [] };
+
+/* The printed look comes from four tones. The reference palette is the sepia
+   ink set of the original drawing; a picked colour keeps its exact relative
+   steps, so ink #5c4a34 reproduces the reference tone for tone. */
+const PALETTE = [
+  { rgb: [92, 74, 52], a: 0.9 },        // base ink
+  { rgb: [107, 90, 66], a: 0.8 },
+  { rgb: [138, 122, 94], a: 0.7 },
+  { rgb: [150, 90, 50], a: 0.85 },      // rust accent, sparse
+];
+
+function buildTones() {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(C.ink);
+  const ink = m ? [1, 2, 3].map(i => parseInt(m[i], 16)) : PALETTE[0].rgb;
+  const base = PALETTE[0].rgb;
+  const clamp = v => v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
+  P.tones = PALETTE.map(({ rgb, a }) => {
+    const [r, g, b] = rgb.map((v, i) => clamp(ink[i] + (v - base[i])));
+    return `rgba(${r},${g},${b},${a})`;
+  });
+}
+
+/* stamp: sharp mask decides where a letter ends, stacked blurs give a field
+   whose gradient still points outward deep inside a thick stroke */
+function buildField() {
+  const w = P.w, h = P.h;
+  const g = document.createElement('canvas');
+  g.width = w; g.height = h;
+  const c = g.getContext('2d', { willReadFrequently: true });
+  const FONT = '900 SZpx ui-sans-serif, system-ui, sans-serif';
+
+  // "base^exponent"; everything after the first ^ is set as a superscript
+  const raw = C.text.length ? C.text : ' ';
+  const cut = raw.indexOf('^');
+  const base = cut < 0 ? raw : raw.slice(0, cut);
+  const exp = cut < 0 ? '' : raw.slice(cut + 1);
+
+  const H = Math.min(w * C.glyphScale, h * 0.9);
+  c.fillStyle = '#000';
+  c.font = FONT.replace('SZ', H);
+  let wBase = c.measureText(base).width;
+  let wExp = 0;
+  if (exp) {
+    c.font = FONT.replace('SZ', H * 0.45);
+    wExp = c.measureText(exp).width * 1.06;
+  }
+  let total = wBase + wExp;
+
+  // long text would run off the page: shrink until the block fits, keeping
+  // the generous paper margin the original leaves around its glyph
+  const fit = Math.min(1, (w * 0.78) / Math.max(1, total));
+  const Hs = H * fit;
+  c.font = FONT.replace('SZ', Hs);
+  wBase = c.measureText(base).width;
+  if (exp) {
+    c.font = FONT.replace('SZ', Hs * 0.45);
+    wExp = c.measureText(exp).width * 1.06;
+  }
+  total = wBase + wExp;
+
+  const x0 = (w - total) / 2, y0 = h / 2 + Hs * 0.32;
+  c.font = FONT.replace('SZ', Hs);
+  c.fillText(base, x0, y0);
+  if (exp) {
+    c.font = FONT.replace('SZ', Hs * 0.45);
+    c.fillText(exp, x0 + wBase * 1.04, y0 - Hs * 0.52);
+  }
+  P.gTop = y0 - Hs * 0.88; P.gBot = y0 + Hs * 0.06;
+  P.gLeft = x0; P.gRight = x0 + total;
+
+  const sharpSrc = c.getImageData(0, 0, w, h).data;
+  const sharp = P.sharp = new Uint8Array(w * h);
+  for (let i = 0; i < sharp.length; i++) sharp[i] = sharpSrc[i * 4 + 3];
+
+  const fw = P.fw = Math.ceil(w / 2), fh = P.fh = Math.ceil(h / 2);
+  const f = document.createElement('canvas');
+  f.width = fw; f.height = fh;
+  const fc = f.getContext('2d', { willReadFrequently: true });
+  for (const [blur, alpha] of [[3, 0.4], [12, 0.35], [34, 0.25]]) {
+    fc.filter = `blur(${blur}px)`;
+    fc.globalAlpha = alpha;
+    fc.drawImage(g, 0, 0, fw, fh);
+  }
+  const push = fc.getImageData(0, 0, fw, fh).data;
+  const field = P.field = new Float32Array(fw * fh);
+  for (let i = 0; i < field.length; i++) field[i] = push[i * 4 + 3] / 255;
+
+  // one soft blur only for the relief height, so lifted rows bend smoothly
+  fc.clearRect(0, 0, fw, fh);
+  fc.filter = `blur(${C.reliefBlur}px)`;
+  fc.globalAlpha = 1;
+  fc.drawImage(g, 0, 0, fw, fh);
+  const rel = fc.getImageData(0, 0, fw, fh).data;
+  const relief = P.relief = new Float32Array(fw * fh);
+  for (let i = 0; i < relief.length; i++) relief[i] = rel[i * 4 + 3] / 255;
+}
+
+function fieldIdx(x, y) {
+  const fx = Math.min(P.fw - 2, Math.max(1, (x * 0.5) | 0));
+  const fy = Math.min(P.fh - 2, Math.max(1, (y * 0.5) | 0));
+  return fy * P.fw + fx;
+}
+
+/* walk downhill out of the letterform, plus a few rim steps; on a plateau
+   deep inside a stroke pick one fixed direction and keep going */
+function displacedHome(x, y) {
+  const f = P.field, fw = P.fw, sharp = P.sharp, w = P.w;
+  const wander = Math.random() * Math.PI * 2;
+  let out = 0;
+  for (let k = 0; k < 160; k++) {
+    const sx = Math.min(w - 1, Math.max(0, x | 0));
+    const sy = Math.min(P.h - 1, Math.max(0, y | 0));
+    if (sharp[sy * w + sx] < 10 && ++out > 2) break;
+    const i = fieldIdx(x, y);
+    let gx = f[i + 1] - f[i - 1], gy = f[i + fw] - f[i - fw];
+    const gl = Math.hypot(gx, gy);
+    if (gl < 0.004) { gx = -Math.cos(wander); gy = -Math.sin(wander); }
+    else { gx /= gl; gy /= gl; }
+    x -= gx * 3; y -= gy * 3;
+  }
+  return { x, y };
+}
+
+/* raster inside the letters, filled with clones of nearby cloud specks so
+   the background keeps its density; donors come from a bucket grid */
+function buildGlyphLayer() {
+  const inG = (x, y) => {
+    const xi = x | 0, yi = y | 0;
+    return xi >= 0 && xi < P.w && yi >= 0 && yi < P.h && P.sharp[yi * P.w + xi] >= 100;
+  };
+  const slots = [];
+  for (let y = Math.max(2, P.gTop); y <= Math.min(P.h - 2, P.gBot + 8 + C.rowGap); y += C.rowGap) {
+    for (let x = P.gLeft - C.colGap; x <= P.gRight + C.colGap; x += C.colGap) {
+      if (!inG(x, y) && !inG(x - C.colGap, y) && !inG(x + C.colGap, y) && !inG(x, y - C.rowGap)) continue;
+      slots.push({ x, y, hgt: P.relief[fieldIdx(x, y)] });
+    }
+  }
+
+  const cell = 64, gw = Math.ceil(P.w / cell), gh = Math.ceil(P.h / cell);
+  const buckets = Array.from({ length: gw * gh }, () => []);
+  const fill = () => P.pts.forEach((p, i) => {
+    buckets[Math.min(gh - 1, (p.hy / cell) | 0) * gw + Math.min(gw - 1, (p.hx / cell) | 0)].push(i);
+  });
+  fill();
+
+  const span = Math.max(1, P.gBot + 8 - P.gTop);
+  const perRow = C.scanDur / Math.ceil(span / C.rowGap);
+  P.gpts = [];
+  for (const s of slots) {
+    const cx = Math.min(gw - 1, (s.x / cell) | 0), cy = Math.min(gh - 1, (s.y / cell) | 0);
+    let picked = -1;
+    outer:
+    for (let r = 0; r < 8; r++) {
+      for (let by = Math.max(0, cy - r); by <= Math.min(gh - 1, cy + r); by++) {
+        for (let bx = Math.max(0, cx - r); bx <= Math.min(gw - 1, cx + r); bx++) {
+          if (Math.max(Math.abs(bx - cx), Math.abs(by - cy)) !== r) continue;
+          const b = buckets[by * gw + bx];
+          if (b.length) { picked = b.pop(); break outer; }
+        }
+      }
+    }
+    if (picked < 0) { fill(); picked = 0; }
+    const d = P.pts[picked];
+    P.gpts.push({
+      x: d.tx, y: d.ty, vx: 0, vy: 0,
+      rx: s.x, ry: s.y + C.offsetY, hgt: s.hgt,
+      wp: s.y * 0.06,                     // wave phase anchored to the row
+      ti: d.ti, size: d.size,
+      delay: (((s.y - P.gTop) / C.rowGap) | 0) * perRow
+           + (s.x - P.gLeft) / Math.max(1, P.gRight - P.gLeft) * C.rowSweep,
+      live: false,
+    });
+  }
+}
+
+function init() {
+  // a collapsed or hidden pane reports a 0x0 viewport: build nothing and wait
+  // for a real size, otherwise every mask would be empty
+  const w = innerWidth || document.documentElement.clientWidth || 0;
+  const h = innerHeight || document.documentElement.clientHeight || 0;
+  P.pending = w < 2 || h < 2;
+  if (P.pending) return;
+
+  P.dpr = devicePixelRatio || 1;
+  P.w = w; P.h = h;
+  canvas.width = P.w * P.dpr;
+  canvas.height = P.h * P.dpr;
+  ctx.setTransform(P.dpr, 0, 0, P.dpr, 0, 0);
+  buildTones();
+  buildField();
+
+  const n = Math.round(P.w * P.h / C.density);
+  P.pts = [];
+  for (let i = 0; i < n; i++) {
+    const hx = Math.random() * P.w, hy = Math.random() * P.h;
+    const d = displacedHome(hx, hy);
+    P.pts.push({
+      x: hx, y: hy, vx: 0, vy: 0, hx, hy, tx: d.x, ty: d.y,
+      ti: i % 7 === 0 ? 3 : i % 3,        // tone index, colour resolved at draw
+      size: 1.5 + Math.random() * 1.2,
+    });
+  }
+  buildGlyphLayer();
+
+  if (reduced) settle();
+  // Paint immediately: a hidden pane gets no animation frames at all, so
+  // without this the canvas stays empty. Hidden also means the reveal cannot
+  // play, so show the finished drawing rather than the undisturbed cloud.
+  const t0 = (reduced || document.hidden) ? RELIEF_AT() + C.scanDur + C.rowSweep + 2000 : 0;
+  if (t0) settleAt(t0);
+  render(t0);
+}
+
+/* jump straight to the end state: used by reduced motion and by edits made
+   after the reveal already played */
+function settle() {
+  P.pts.forEach(p => { p.x = p.tx; p.y = p.ty; });
+  P.gpts.forEach(p => { p.x = p.rx; p.y = p.ry - p.hgt * C.lift; p.live = true; });
+}
+
+function smoothstep(v) {
+  v = v < 0 ? 0 : v > 1 ? 1 : v;
+  return v * v * (3 - 2 * v);
+}
+
+/* physics is decoupled from the frame rate; a throttled tab catches up */
+function stepPhysics(t) {
+  const press = reduced ? 1 : smoothstep(t / C.pressDur);
+  const rr = reduced ? 1 : smoothstep((t - RELIEF_AT()) / C.reliefDur);
+  for (const p of P.pts) {
+    const bx = p.hx + (p.tx - p.hx) * press;
+    const by = p.hy + (p.ty - p.hy) * press;
+    p.vx += (bx - p.x) * C.cloudSpring;
+    p.vy += (by - p.y) * C.cloudSpring;
+    p.vx *= 0.88; p.vy *= 0.88;
+    p.x += p.vx; p.y += p.vy;
+  }
+  if (rr <= 0) return;
+  const sway = reduced ? 0 : 1;
+  for (const p of P.gpts) {
+    const local = t - RELIEF_AT() - p.delay;
+    if (local < 0) continue;
+    p.live = true;
+    const by = p.ry - p.hgt * C.lift * smoothstep(local / 400)
+             + Math.sin(t / 1600 + p.wp) * C.waveAmp * sway;
+    // stiff spring while flying in, the cloud's lazy spring once settled
+    const arrived = local > 900;
+    const k = arrived ? C.cloudSpring : C.flightSpring;
+    const damp = arrived ? 0.88 : 0.82;
+    p.vx += (p.rx - p.x) * k;
+    p.vy += (by - p.y) * k;
+    p.vx *= damp; p.vy *= damp;
+    p.x += p.vx; p.y += p.vy;
+  }
+}
+
+/* springs need small time steps; when frames arrive far apart (throttled or
+   hidden pane, slow machine) integrating would fall behind and the scene
+   looks like scattered noise. Snap to the state the timeline asks for. */
+function settleAt(t) {
+  const press = smoothstep(t / C.pressDur);
+  for (const p of P.pts) {
+    p.x = p.hx + (p.tx - p.hx) * press;
+    p.y = p.hy + (p.ty - p.hy) * press;
+    p.vx = 0; p.vy = 0;
+  }
+  for (const p of P.gpts) {
+    const local = t - RELIEF_AT() - p.delay;
+    if (local < 0) continue;
+    p.live = true;
+    p.x = p.rx;
+    p.y = p.ry - p.hgt * C.lift * smoothstep(local / 400);
+    p.vx = 0; p.vy = 0;
+  }
+}
+
+function nudge(p) {
+  const dx = p.x - P.mouse.x, dy = p.y - P.mouse.y;
+  const d = Math.hypot(dx, dy);
+  if (d >= C.mouseR) return;
+  const push = (1 - d / C.mouseR) * C.mousePush;
+  p.x += (dx / (d || 1)) * push;
+  p.y += (dy / (d || 1)) * push;
+}
+
+function render(t) {
+  ctx.clearRect(0, 0, P.w, P.h);
+  const rr = reduced ? 1 : smoothstep((t - RELIEF_AT()) / C.reliefDur);
+
+  // one pass per tone keeps fillStyle switches cheap
+  ctx.globalAlpha = 1 - rr * C.cloudFade;
+  for (let ti = 0; ti < P.tones.length; ti++) {
+    ctx.fillStyle = P.tones[ti];
+    for (const p of P.pts) {
+      if (p.ti !== ti) continue;
+      nudge(p);
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+  }
+  ctx.globalAlpha = 1;
+  for (let ti = 0; ti < P.tones.length; ti++) {
+    ctx.fillStyle = P.tones[ti];
+    for (const p of P.gpts) {
+      if (!p.live || p.ti !== ti) continue;
+      nudge(p);
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+  }
+}
+
+function finished() {
+  return P.last - P.started > RELIEF_AT() + C.scanDur + C.rowSweep + 1500;
+}
+
+function frame(now) {
+  if (P.pending) { requestAnimationFrame(frame); return; }
+  if (!P.started) P.started = now;
+  const t = now - P.started;
+  const dt = now - (P.last || now);
+  P.last = now;
+  if (dt > 120) settleAt(t);            // too far behind to integrate
+  else {
+    const steps = Math.max(1, Math.min(6, Math.round(dt / 16.7)));
+    for (let k = 0; k < steps; k++) stepPhysics(t);
+  }
+  render(t);
+  requestAnimationFrame(frame);
+}
+
+/* window-level, so the cloud reacts across the whole page */
+addEventListener('mousemove', e => { P.mouse.x = e.clientX; P.mouse.y = e.clientY; });
+document.documentElement.addEventListener('mouseleave', () => { P.mouse.x = -1e9; P.mouse.y = -1e9; });
+
+/* --------------------------------------------------------------- controls */
+
+const el = id => document.getElementById(id);
+
+function replay() {
+  P.started = 0; P.last = 0;
+  init();
+}
+
+/* structural edit: rebuild, but keep the end state if the reveal already ran,
+   so tweaking text or density mid-view does not restart the animation */
+function rebuild() {
+  const wasDone = finished();
+  init();
+  if (wasDone) settle();
+}
+
+// text: rebuild on a short debounce so typing stays responsive
+let txtTimer;
+el('txt').addEventListener('input', e => {
+  C.text = e.target.value;
+  clearTimeout(txtTimer);
+  txtTimer = setTimeout(rebuild, 250);
+});
+
+// colours apply live, no rebuild: the tones are resolved per frame
+el('bg').addEventListener('input', e => {
+  C.bg = e.target.value;
+  document.body.style.background = C.bg;
+});
+el('ink').addEventListener('input', e => {
+  C.ink = e.target.value;
+  buildTones();
+});
+
+let sizeTimer;
+el('scale').addEventListener('input', e => {
+  C.glyphScale = parseFloat(e.target.value);
+  el('scaleVal').textContent = C.glyphScale;
+  clearTimeout(sizeTimer);
+  sizeTimer = setTimeout(rebuild, 200);
+});
+el('dens').addEventListener('input', e => {
+  C.density = parseFloat(e.target.value);
+  el('densVal').textContent = C.density;
+  clearTimeout(sizeTimer);
+  sizeTimer = setTimeout(rebuild, 200);
+});
+
+el('replay').addEventListener('click', replay);
+el('reset').addEventListener('click', () => {
+  Object.assign(C, DEFAULTS);
+  el('txt').value = C.text;
+  el('bg').value = C.bg;
+  el('ink').value = C.ink;
+  el('scale').value = C.glyphScale;
+  el('scaleVal').textContent = C.glyphScale;
+  el('dens').value = C.density;
+  el('densVal').textContent = C.density;
+  document.body.style.background = C.bg;
+  replay();
+});
+
+el('panelToggle').addEventListener('click', () => {
+  const closed = document.body.classList.toggle('panel-closed');
+  el('panelToggle').textContent = closed ? '‹' : '›';
+});
+
+let resizeTimer;
+function onResize() {
+  clearTimeout(resizeTimer);
+  // rebuild for the new size, but do not rewind a reveal that already played
+  resizeTimer = setTimeout(rebuild, 250);
+}
+addEventListener('resize', onResize);
+// a pane that opens from 0x0 fires no window resize in every host: watch the
+// element box too, so the scene builds as soon as there is room for it
+new ResizeObserver(entries => {
+  const box = entries[0].contentRect;
+  if (box.width < 2 || box.height < 2) return;
+  if (P.pending || Math.abs(box.width - P.w) > 1 || Math.abs(box.height - P.h) > 1) onResize();
+}).observe(document.documentElement);
+
+addEventListener('keydown', e => {
+  const typing = e.target.tagName === 'INPUT';
+  if (e.code === 'Space' && !typing) { e.preventDefault(); replay(); }
+});
+
+/* a hidden or collapsed pane gets no animation frames at all, which would
+   leave the canvas blank: paint one static frame up front, and start the
+   reveal from zero the moment the page actually becomes visible */
+document.addEventListener('visibilitychange', () => {
+  // only kick off a reveal that never got a single frame; a running or already
+  // finished scene must not restart every time the pane is shown again
+  if (!document.hidden && (P.pending || !P.started)) replay();
+});
+
+init();
+if (!P.pending) render(0);
+requestAnimationFrame(frame);
+
+// debug handle: inspect or drive the scene from the console
+window.KS = { C, P, replay, rebuild, settleAt };
+</script>
+</body>
+</html>

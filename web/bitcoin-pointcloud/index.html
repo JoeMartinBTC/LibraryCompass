@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitcoin-Punktwolke — Text als Relief aus Tintenpunkten</title>
+<meta name="description" content="Die Bitcoin-Punktwolke drückt beliebigen Text wie einen Stempel in eine Wolke aus Tintenpunkten auf Sepiapapier. Eine einzige HTML-Datei, direkt im Browser ausprobieren. Privates Hobbyprojekt, quelloffen unter MIT.">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://librarycompass.com/bitcoin-pointcloud/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C8A878'/%3E%3Cg fill='%235c4a34'%3E%3Ccircle cx='16' cy='18' r='3'/%3E%3Ccircle cx='30' cy='14' r='2.4'/%3E%3Ccircle cx='46' cy='20' r='3'/%3E%3Ccircle cx='22' cy='32' r='2.4'/%3E%3Ccircle cx='40' cy='34' r='3.2'/%3E%3Ccircle cx='14' cy='46' r='2.6'/%3E%3Ccircle cx='32' cy='48' r='3'/%3E%3Ccircle cx='50' cy='46' r='2.4'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg1:#28104E; --bg2:#1B0C36; --bg3:#150A2C;
+    --glow1:#5A2497; --glow2:#2E3FA8; --glow3:#7A2A9E;
+    --glass:rgba(255,255,255,.055); --glass2:rgba(255,255,255,.10); --glass3:rgba(255,255,255,.16);
+    --brd:rgba(255,255,255,.11); --brd2:rgba(255,255,255,.20);
+    --text:#fff; --text2:rgba(255,255,255,.66); --text3:rgba(255,255,255,.40);
+    --accent:#B45CFF; --accent2:#7B3BE8; --accentInk:#fff;
+    --cyan:#4FD8E8; --mint:#56E39F; --gold:#FFC24F; --pink:#FF6BC1;
+    --shadowCard:0 2px 6px rgba(0,0,0,.22), 0 18px 44px rgba(0,0,0,.30);
+    --shadowShot:0 3px 10px rgba(0,0,0,.34), 0 24px 60px rgba(0,0,0,.45);
+    --glow:0 0 0 1px rgba(255,255,255,.14), 0 14px 40px rgba(180,92,255,.38);
+  }
+  html[data-theme="light"]{
+    --bg1:#FAF7FF; --bg2:#F3EEFD; --bg3:#F3EEFD;
+    --glow1:#E5D6FF; --glow2:#D9E3FF; --glow3:#F0DAFB;
+    --glass:rgba(255,255,255,.66); --glass2:rgba(255,255,255,.86); --glass3:rgba(124,70,200,.10);
+    --brd:rgba(74,38,124,.12); --brd2:rgba(74,38,124,.20);
+    --text:#1E1136; --text2:rgba(30,17,54,.62); --text3:rgba(30,17,54,.40);
+    --accent:#8B3FE0; --accent2:#6A29C4;
+    --cyan:#1F9BB0; --mint:#1E9E6A; --gold:#C8892A; --pink:#D4459B;
+    --shadowCard:0 2px 6px rgba(40,16,78,.06), 0 18px 44px rgba(40,16,78,.10);
+    --shadowShot:0 3px 10px rgba(40,16,78,.10), 0 24px 60px rgba(40,16,78,.16);
+    --glow:0 0 0 1px rgba(255,255,255,.6), 0 14px 40px rgba(139,63,224,.24);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text); background:var(--bg3);
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(120% 95% at 10% -12%, var(--glow1), transparent 60%),
+      radial-gradient(95% 80% at 97% 6%, var(--glow2), transparent 58%),
+      radial-gradient(70% 60% at 60% 108%, var(--glow3), transparent 55%),
+      linear-gradient(163deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 26px}
+  a{color:inherit}
+
+  /* ---- Kopfzeile ---- */
+  header{position:sticky; top:0; z-index:50; backdrop-filter:blur(24px);
+         background:color-mix(in srgb, var(--bg3) 62%, transparent); border-bottom:1px solid var(--brd)}
+  .bar{display:flex; align-items:center; gap:14px; height:62px}
+  .brand{display:flex; align-items:center; gap:11px; font-size:15px; font-weight:560; text-decoration:none; margin-right:auto}
+  .mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(150deg,var(--accent),var(--accent2));
+        box-shadow:0 3px 10px rgba(123,59,232,.45); display:grid; place-items:center; flex:0 0 auto}
+  .mark svg{width:16px;height:16px}
+  .ctl{display:flex; gap:3px; padding:3px; border-radius:12px; background:var(--glass); border:1px solid var(--brd)}
+  .ctl button{
+    appearance:none; border:0; cursor:pointer; background:transparent; color:var(--text3);
+    font:inherit; font-size:11.5px; font-weight:600; letter-spacing:.04em;
+    padding:5px 10px; border-radius:9px; transition:background .12s ease,color .12s ease;
+  }
+  .ctl button[aria-pressed="true"]{background:var(--glass3); color:var(--text)}
+  .ctl button:hover{color:var(--text)}
+  .gh{display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-size:13px; font-weight:500;
+      padding:8px 14px; border-radius:11px; border:1px solid var(--brd2); background:var(--glass);
+      transition:background .12s ease}
+  .gh:hover{background:var(--glass2)}
+  .gh svg{width:15px;height:15px;fill:currentColor}
+  @media(max-width:720px){ .gh span{display:none} }
+
+  /* ---- Hero ---- */
+  .hero{padding:74px 0 0; text-align:center}
+  .pill{display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--text2);
+        padding:6px 13px; border-radius:26px; background:var(--glass); border:1px solid var(--brd); margin-bottom:22px}
+  .pill i{width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;font-style:normal}
+  h1{font-size:clamp(38px,6.4vw,64px); font-weight:300; letter-spacing:-.03em; line-height:1.06; margin:0 0 18px}
+  .lede{font-size:clamp(16px,2.1vw,19.5px); font-weight:300; color:var(--text2);
+        max-width:660px; margin:0 auto 30px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
+  .btn{display:inline-flex; align-items:center; gap:10px; text-decoration:none; font-size:14.5px; font-weight:500;
+       height:52px; padding:0 30px; border-radius:26px; border:1px solid transparent; transition:filter .12s ease,background .12s ease}
+  .btn-primary{background:linear-gradient(150deg,var(--accent),var(--accent2)); color:var(--accentInk); box-shadow:var(--glow)}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-ghost{background:var(--glass); border-color:var(--brd2); color:var(--text)}
+  .btn-ghost:hover{background:var(--glass2)}
+  .btn svg{width:17px;height:17px;fill:currentColor}
+  .req{font-size:12px; color:var(--text3)}
+
+  /* ---- Screenshots ---- */
+  .shot{border-radius:14px; border:1px solid var(--brd); box-shadow:var(--shadowShot);
+        display:block; width:100%; height:auto; background:var(--glass)}
+  .hero-shot{margin:44px auto 0; max-width:1060px}
+  figure{margin:0}
+  figcaption{font-size:12.5px; color:var(--text3); text-align:center; margin-top:12px}
+
+  /* ---- Abschnitte ---- */
+  section{padding:78px 0}
+  .eyebrow{font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+           color:var(--text3); margin:0 0 12px}
+  h2{font-size:clamp(26px,3.6vw,36px); font-weight:300; letter-spacing:-.03em; margin:0 0 14px; line-height:1.15}
+  h3{font-size:16px; font-weight:560; margin:0 0 7px; letter-spacing:-.01em}
+  .sub{color:var(--text2); font-size:15.5px; font-weight:300; max-width:640px; margin:0 0 38px}
+  .center{text-align:center} .center .sub{margin-left:auto;margin-right:auto}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:16px}
+  .card{background:var(--glass); border:1px solid var(--brd); border-radius:20px; padding:24px 22px;
+        box-shadow:var(--shadowCard); backdrop-filter:blur(20px)}
+  .card p{margin:0; color:var(--text2); font-size:13.8px; font-weight:300}
+  .tile{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:15px;
+        box-shadow:0 3px 10px rgba(0,0,0,.22)}
+  .tile svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .t1{background:linear-gradient(150deg,#B45CFF,#7B3BE8)} .t2{background:linear-gradient(150deg,#4FD8E8,#2E3FA8)}
+  .t3{background:linear-gradient(150deg,#56E39F,#177A5A)} .t4{background:linear-gradient(150deg,#FFC24F,#8A6516)}
+  .t5{background:linear-gradient(150deg,#FF6BC1,#6E1E8E)} .t6{background:linear-gradient(150deg,#FFB347,#B8531A)}
+  kbd{font:inherit; font-size:11.5px; font-weight:600; padding:1.5px 6px; border-radius:6px;
+      background:var(--glass3); border:1px solid var(--brd); color:var(--text2); white-space:nowrap}
+
+  .gallery{display:grid; gap:56px}
+  .g-row{display:grid; grid-template-columns:1fr; gap:26px; align-items:center}
+  @media(min-width:900px){
+    .g-row{grid-template-columns:1fr 1.32fr; gap:44px}
+    .g-row.flip .g-txt{order:2}
+  }
+  .g-txt h3{font-size:21px; font-weight:400; letter-spacing:-.02em; margin-bottom:10px}
+  .g-txt p{color:var(--text2); font-size:14.5px; font-weight:300; margin:0}
+
+  .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:26px}
+  .step{background:var(--glass); border:1px solid var(--brd); border-radius:18px; padding:20px}
+  .step b{display:block; font-size:28px; font-weight:300; letter-spacing:-.03em; color:var(--accent); margin-bottom:6px}
+  .step p{margin:0; color:var(--text2); font-size:13.5px; font-weight:300}
+  pre{background:var(--glass2); border:1px solid var(--brd); border-radius:16px; padding:18px 20px;
+      overflow-x:auto; margin:0; box-shadow:var(--shadowCard)}
+  code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace; font-size:12.8px; line-height:1.85; color:var(--text2)}
+  code .c{color:var(--text3)} code .k{color:var(--cyan)}
+
+  .note{background:var(--glass); border:1px solid var(--brd); border-left:3px solid var(--accent);
+        border-radius:14px; padding:18px 22px; color:var(--text2); font-size:13.8px; font-weight:300}
+  .note strong{color:var(--text); font-weight:560}
+
+  footer{border-top:1px solid var(--brd); padding:44px 0 60px; margin-top:20px}
+  .f-grid{display:flex; flex-wrap:wrap; gap:26px; justify-content:space-between; align-items:flex-start}
+  footer p{margin:0 0 8px; font-size:12.8px; color:var(--text3); font-weight:300; max-width:560px}
+  footer a{color:var(--text2)}
+  footer a:hover{color:var(--text)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* ---- Ergänzungen Punktwolke ---- */
+  .brand{white-space:nowrap}
+  .mark.dots{background:linear-gradient(150deg,#E6D3B0,#C8A878 60%,#8A6A44); box-shadow:0 3px 10px rgba(138,106,68,.45)}
+  .back{font-size:13px; color:var(--text2); text-decoration:none; padding:8px 4px}
+  .back:hover{color:var(--text)}
+  @media(max-width:720px){ .back{display:none} }
+  .demo{position:relative; margin:0 auto; max-width:1060px; border-radius:14px; overflow:hidden;
+        border:1px solid var(--brd); box-shadow:var(--shadowShot); background:#ece2cd; aspect-ratio:16/10}
+  .demo iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  @media(max-width:700px){ .demo{display:none} .demo-bar{justify-content:flex-start; margin-top:0} }
+  @media(max-width:520px){ .brand > span:last-child{display:none} .bar{gap:8px} }
+  .demo-bar{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:18px}
+  table.ctl-table{width:100%; border-collapse:collapse; font-size:14px; background:var(--glass); border:1px solid var(--brd);
+                  border-radius:16px; overflow:hidden; box-shadow:var(--shadowCard)}
+  .ctl-table th,.ctl-table td{text-align:left; padding:12px 16px; border-bottom:1px solid var(--brd); vertical-align:top}
+  .ctl-table tr:last-child td{border-bottom:0}
+  .ctl-table th{font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--text3)}
+  .ctl-table td:first-child{font-weight:560; white-space:nowrap; width:1%}
+  .ctl-table td{color:var(--text2); font-weight:300}
+  .ideas{columns:2 260px; column-gap:28px; margin:0 0 30px; padding-left:18px; color:var(--text2); font-size:14px; font-weight:300}
+  .ideas li{margin:0 0 8px; break-inside:avoid}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#top">
+      <span class="mark dots" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><g fill="#fff"><circle cx="16" cy="18" r="4"/><circle cx="32" cy="14" r="3"/><circle cx="48" cy="20" r="4"/><circle cx="22" cy="33" r="3"/><circle cx="41" cy="34" r="4.4"/><circle cx="14" cy="47" r="3.4"/><circle cx="32" cy="49" r="4"/><circle cx="50" cy="47" r="3"/></g></svg>
+      </span>
+      <span data-i18n="nav.brand">Bitcoin-Punktwolke</span>
+    </a>
+    <a class="back" href="../" data-i18n="nav.back">← LibraryCompass</a>
+
+    <div class="ctl" role="group" aria-label="Sprache / Language">
+      <button type="button" data-lang-btn="de" aria-pressed="true">DE</button>
+      <button type="button" data-lang-btn="en" aria-pressed="false">EN</button>
+    </div>
+
+    <div class="ctl" role="group" aria-label="Erscheinungsbild / Appearance">
+      <button type="button" data-theme-btn="light" aria-pressed="false" title="Hell / Light">☀</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="true" title="Dunkel / Dark">☾</button>
+    </div>
+
+    <a class="gh" href="https://github.com/JoeMartinBTC/bitcoin-pointcloud" rel="noopener">
+      <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+      <span data-i18n="nav.gh">Quellcode</span>
+    </a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <div class="wrap hero">
+    <span class="pill"><i></i><span data-i18n="hero.pill">Hobbyprojekt · quelloffen · läuft im Browser</span></span>
+    <h1 data-i18n="hero.h1">Text als Relief<br>aus Tintenpunkten.</h1>
+    <p class="lede" data-i18n="hero.lede">Die Bitcoin-Punktwolke drückt ein Wort wie einen Stempel in eine Wolke aus Tintenpunkten auf Sepiapapier. Die Punkte weichen dem Stempel aus, das Wort erscheint als Aussparung und hebt sich dann Zeile für Zeile als Relief ab. Beliebiger Text, eigene Farben, eine einzige HTML-Datei.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="demo/"><span data-i18n="hero.cta1">Jetzt ausprobieren</span></a>
+      <a class="btn btn-ghost" href="https://github.com/JoeMartinBTC/bitcoin-pointcloud" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+        <span data-i18n="hero.cta2">Auf GitHub ansehen</span>
+      </a>
+    </div>
+    <p class="req" data-i18n="hero.req">Jeder aktuelle Browser · keine Installation · MIT-Lizenz</p>
+
+    <figure class="hero-shot">
+      <img class="shot" src="img/2hoch256.webp" width="1600" height="1000" loading="eager"
+           alt="Die Punktwolke mit dem Text 2 hoch 256 als erhabenes Relief aus Tintenpunkten auf Sepiapapier">
+      <figcaption data-i18n="hero.cap">„2^256“ — die Zahl der möglichen privaten Schlüssel in Bitcoin, als Relief gestempelt.</figcaption>
+    </figure>
+  </div>
+
+  <!-- WARUM -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="why.eyebrow">Worum es geht</p>
+    <h2 data-i18n="why.h2">Ein Spielzeug für Leinwand und Auge.</h2>
+    <p class="sub" data-i18n="why.sub">Den Anstoß gab eine interaktive Darstellung, wie groß 2^256 ist, mit genau diesem Sepia-Look. Die Punktwolke ist eine eigene Umsetzung davon, kein kopierter Code: Sie macht aus jedem Wort einen Druckstempel. Gedacht zum Anschauen, Herumspielen und als Hintergrund für Präsentationen oder Bildschirmfotos.</p>
+    <div class="note">
+      <strong data-i18n="why.noteT">Ein privates Hobbyprojekt, genau wie LibraryCompass.</strong>
+      <span data-i18n="why.noteB"> Kein Produkt, kein Geschäftsmodell, kein Support-Versprechen. Die Seite lädt nichts nach und sendet nichts; alles läuft im eigenen Browser.</span>
+    </div>
+  </section>
+
+  <!-- LIVE -->
+  <section class="wrap" id="live">
+    <p class="eyebrow" data-i18n="live.eyebrow">Live</p>
+    <h2 data-i18n="live.h2">Hier direkt ausprobieren.</h2>
+    <p class="sub" data-i18n="live.sub">Oben rechts in der Wolke liegt das Einstellungsfeld. Text ändern, Farben wählen, Regler ziehen. Mit der Maus über die Punkte fahren schiebt sie sanft beiseite. Auf dem großen Bildschirm wirkt es am besten.</p>
+    <div class="demo">
+      <iframe src="demo/" title="Bitcoin-Punktwolke, interaktiv" loading="lazy"></iframe>
+    </div>
+    <div class="demo-bar">
+      <a class="btn btn-ghost" href="demo/"><span data-i18n="live.full">Im ganzen Fenster öffnen</span></a>
+    </div>
+  </section>
+
+  <!-- BEDIENUNG -->
+  <section class="wrap" id="bedienung">
+    <p class="eyebrow" data-i18n="use.eyebrow">Bedienung</p>
+    <h2 data-i18n="use.h2">Ein Feld, zwei Farben, zwei Regler.</h2>
+    <p class="sub" data-i18n="use.sub">Alles sitzt im Einstellungsfeld. Der kleine Pfeil daneben klappt es ein, damit nur noch die Wolke zu sehen ist. Jede Änderung spielt die Szene neu ab.</p>
+    <table class="ctl-table">
+      <thead><tr><th data-i18n="use.th1">Element</th><th data-i18n="use.th2">Was es tut</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="c1.k">Text</td><td data-i18n="c1.v">Das Wort, das gestempelt wird. Ein ^ setzt den Rest hoch: 2^256 ergibt eine Hochzahl.</td></tr>
+        <tr><td data-i18n="c2.k">Hintergrund</td><td data-i18n="c2.v">Die Farbe des Papiers.</td></tr>
+        <tr><td data-i18n="c3.k">Punkte</td><td data-i18n="c3.v">Die Tintenfarbe. Daraus werden vier Töne abgeleitet, damit der gedruckte Eindruck bleibt.</td></tr>
+        <tr><td data-i18n="c4.k">Grösse</td><td data-i18n="c4.v">Wie groß das Wort erscheint.</td></tr>
+        <tr><td data-i18n="c5.k">Dichte</td><td data-i18n="c5.v">Wie viel Papier auf einen Punkt kommt. Kleinere Werte heißen mehr Punkte.</td></tr>
+        <tr><td data-i18n="c6.k">Neu abspielen</td><td data-i18n="c6.v">Spielt das Erscheinen noch einmal ab. Geht auch mit der Leertaste.</td></tr>
+        <tr><td data-i18n="c7.k">Zurücksetzen</td><td data-i18n="c7.v">Stellt Text, Farben und Regler auf den Anfang zurück.</td></tr>
+        <tr><td data-i18n="c8.k">Maus</td><td data-i18n="c8.v">Schiebt die Punkte, über die sie fährt, sanft beiseite.</td></tr>
+      </tbody>
+    </table>
+    <p class="sub" style="margin:18px 0 0" data-i18n="use.after">Wer im System „Bewegung reduzieren“ eingeschaltet hat, sieht sofort das fertige Bild ohne Animation.</p>
+  </section>
+
+  <!-- ANSICHTEN -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="shots.eyebrow">Ansichten</p>
+    <h2 data-i18n="shots.h2">Ein Wort, eine Zahl.</h2>
+    <p class="sub" data-i18n="shots.sub">Die Voreinstellung stempelt „Bitcoin“. Mit ^ entsteht eine Hochzahl, hier 2^256.</p>
+    <figure><img class="shot" src="img/bitcoin.webp" width="1600" height="1000" loading="lazy" alt="Die Punktwolke mit dem Wort Bitcoin als Relief"><figcaption data-i18n="shots.cap">Voreinstellung: „Bitcoin“ auf Sepiapapier.</figcaption></figure>
+  </section>
+
+  <!-- TECHNIK -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="tech.eyebrow">Wie es funktioniert</p>
+    <h2 data-i18n="tech.h2">Vier Schritte vom Wort zum Relief.</h2>
+    <p class="sub" data-i18n="tech.sub">Kein Framework, keine Bibliothek. Alles steckt in einer Canvas-Zeichenfläche und knapp 500 Zeilen JavaScript.</p>
+    <div class="steps">
+      <div class="step"><b>1</b><p data-i18n="t1">Das Wort wird unsichtbar gezeichnet. Eine scharfe Maske zeigt, wo ein Buchstabe endet; mehrere Weichzeichnungen übereinander ergeben ein Druckfeld, dessen Gefälle auch tief im Strich nach außen zeigt.</p></div>
+      <div class="step"><b>2</b><p data-i18n="t2">Jeder Punkt läuft dieses Gefälle hinab, bis er außerhalb der Maske liegt. So entsteht das Wort als Aussparung.</p></div>
+      <div class="step"><b>3</b><p data-i18n="t3">Das Relief bauen Kopien benachbarter Punkte, gesucht über ein Raster. Deshalb dünnt der Hintergrund dort nicht aus, wo die Buchstaben stehen.</p></div>
+      <div class="step"><b>4</b><p data-i18n="t4">Federn bewegen die Punkte von Bild zu Bild. Kommen Bilder zu langsam, springt die Szene auf den Stand, den der Zeitplan verlangt, statt hinterherzuhinken.</p></div>
+    </div>
+  </section>
+
+  <!-- SELBST -->
+  <section class="wrap" id="build">
+    <p class="eyebrow" data-i18n="build.eyebrow">Selbst starten</p>
+    <h2 data-i18n="build.h2">Eine Datei, kein Build.</h2>
+    <p class="sub" data-i18n="build.sub">Herunterladen und die Datei im Browser öffnen reicht. Wer lieber über einen kleinen lokalen Server geht:</p>
+<pre><code><span class="k">git</span> clone https://github.com/JoeMartinBTC/bitcoin-pointcloud.git
+<span class="k">cd</span> bitcoin-pointcloud
+<span class="k">python3</span> -m http.server 8000
+<span class="c"># <span data-i18n="build.c1">dann im Browser: http://localhost:8000</span></span></code></pre>
+  </section>
+
+  <!-- MITMACHEN -->
+  <section class="wrap" id="mitmachen">
+    <p class="eyebrow" data-i18n="join.eyebrow">Mitmachen</p>
+    <h2 data-i18n="join.h2">Baut sie weiter.</h2>
+    <p class="sub" data-i18n="join.sub">Die Punktwolke ist ein Anfang. Wer eine Idee hat, soll sie bauen: Repository forken, ausprobieren, einen Pull Request schicken. Auch ein Issue mit einer guten Idee ist ein Beitrag. Es ist nur eine HTML-Datei, der Einstieg gelingt in einer Stunde.</p>
+    <ul class="ideas">
+      <li data-i18n="i1">Das fertige Bild als PNG oder SVG speichern</li>
+      <li data-i18n="i2">Text und Farben in der Adresse, um Bilder als Link zu teilen</li>
+      <li data-i18n="i3">Die Animation als Video oder GIF aufnehmen</li>
+      <li data-i18n="i4">Mehrere Zeilen und eigene Schriften</li>
+      <li data-i18n="i5">Berührungen auf Handy und Tablet</li>
+      <li data-i18n="i6">Farbvorlagen, etwa Bitcoin-Orange auf Schwarz</li>
+      <li data-i18n="i7">Live-Daten als Text, zum Beispiel die aktuelle Blockhöhe</li>
+      <li data-i18n="i8">Eine englische Oberfläche</li>
+    </ul>
+    <div class="cta" style="justify-content:flex-start">
+      <a class="btn btn-primary" href="https://github.com/JoeMartinBTC/bitcoin-pointcloud/fork" rel="noopener"><span data-i18n="join.b1">Repository forken</span></a>
+      <a class="btn btn-ghost" href="https://github.com/JoeMartinBTC/bitcoin-pointcloud/issues" rel="noopener"><span data-i18n="join.b2">Idee oder Fehler melden</span></a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap f-grid">
+    <div>
+      <p><strong style="color:var(--text2)" data-i18n="foot.name">Bitcoin-Punktwolke</strong> — <span data-i18n="foot.p1">privates Hobbyprojekt, quelloffen unter der MIT-Lizenz. Keine kommerzielle Absicht, kein Support-Versprechen.</span></p>
+      <p><span data-i18n="foot.p2">Idee und Sepia-Look angeregt von der Darstellung</span> <a href="https://tlausz.github.io/keyspace/" rel="noopener">keyspace</a><span data-i18n="foot.p3">. Eigene Umsetzung, kein kopierter Code.</span></p>
+    </div>
+    <div>
+      <p><a href="https://github.com/JoeMartinBTC/bitcoin-pointcloud" rel="noopener" data-i18n="foot.l1">Quellcode auf GitHub</a></p>
+      <p><a href="https://github.com/JoeMartinBTC/bitcoin-pointcloud/issues" rel="noopener" data-i18n="foot.l2">Idee oder Fehler melden</a></p>
+      <p><a href="../" data-i18n="foot.l3">LibraryCompass</a> · <a href="../bitcoin-uhr/" data-i18n="foot.l4">Bitcoin-Uhr</a></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var STRINGS = {
+    en: {
+      "nav.brand": "Bitcoin Point Cloud",
+      "nav.back": "← LibraryCompass",
+      "nav.gh": "Source",
+      "hero.pill": "Hobby project · open source · runs in the browser",
+      "hero.h1": "Text as a relief<br>of ink specks.",
+      "hero.lede": "The Bitcoin Point Cloud presses a word like a stamp into a cloud of ink specks on sepia paper. The specks move out of the stamp’s way, the word appears as negative space and then lifts, line by line, as a relief. Any text, your own colours, a single HTML file.",
+      "hero.cta1": "Try it now",
+      "hero.cta2": "View on GitHub",
+      "hero.req": "Any current browser · nothing to install · MIT licence",
+      "hero.cap": "“2^256” — the number of possible private keys in Bitcoin, stamped as a relief.",
+
+      "why.eyebrow": "What it is",
+      "why.h2": "A toy for canvas and eye.",
+      "why.sub": "The spark was an interactive visualisation of how big 2^256 is, with exactly this sepia look. The point cloud is an independent implementation, not copied code: it turns any word into a printing stamp. Made for looking at, playing with, and as a backdrop for slides or screenshots.",
+      "why.noteT": "A private hobby project, just like LibraryCompass.",
+      "why.noteB": " No product, no business model, no promise of support. The page loads nothing extra and sends nothing; everything runs in your own browser.",
+
+      "live.eyebrow": "Live",
+      "live.h2": "Try it right here.",
+      "live.sub": "The settings panel sits at the top right of the cloud. Change the text, pick colours, drag the sliders. Moving the mouse over the specks gently pushes them aside. It looks best on a large screen.",
+      "live.full": "Open full window",
+
+      "use.eyebrow": "How to use it",
+      "use.h2": "One field, two colours, two sliders.",
+      "use.sub": "Everything lives in the settings panel. The small arrow next to it folds it away so only the cloud remains. Every change replays the scene.",
+      "use.th1": "Control",
+      "use.th2": "What it does",
+      "c1.k": "Text", "c1.v": "The word being stamped. A ^ raises the rest: 2^256 gives an exponent.",
+      "c2.k": "Background", "c2.v": "The paper colour.",
+      "c3.k": "Specks", "c3.v": "The ink colour. Four tones are derived from it to keep the printed look.",
+      "c4.k": "Size", "c4.v": "How large the word appears.",
+      "c5.k": "Density", "c5.v": "How much paper there is per speck. Lower values mean more specks.",
+      "c6.k": "Replay", "c6.v": "Plays the reveal again. The space bar works too.",
+      "c7.k": "Reset", "c7.v": "Puts text, colours and sliders back to the start.",
+      "c8.k": "Mouse", "c8.v": "Gently pushes aside the specks it passes over.",
+      "use.after": "With “Reduce motion” switched on in the system, you see the finished picture straight away, without animation. The panel itself is labelled in German.",
+
+      "shots.eyebrow": "Views",
+      "shots.h2": "A word, a number.",
+      "shots.sub": "The default stamps “Bitcoin”. With ^ you get an exponent, here 2^256.",
+      "shots.cap": "Default: “Bitcoin” on sepia paper.",
+
+      "tech.eyebrow": "How it works",
+      "tech.h2": "Four steps from word to relief.",
+      "tech.sub": "No framework, no library. Everything sits in one canvas and just under 500 lines of JavaScript.",
+      "t1": "The word is drawn invisibly. A sharp mask marks where a letter ends; several blurs stacked on top of each other make a pressure field whose slope points outward even deep inside a stroke.",
+      "t2": "Every speck walks down that slope until it sits outside the mask. That is how the word appears as negative space.",
+      "t3": "The relief is built from copies of nearby specks, found through a grid. So the background does not thin out where the letters stand.",
+      "t4": "Springs move the specks from frame to frame. When frames arrive too slowly, the scene jumps to the state the timeline asks for instead of lagging behind.",
+
+      "build.eyebrow": "Run it yourself",
+      "build.h2": "One file, no build.",
+      "build.sub": "Download it and open the file in a browser — that is all. If you prefer a small local server:",
+      "build.c1": "then in the browser: http://localhost:8000",
+
+      "join.eyebrow": "Contribute",
+      "join.h2": "Keep building it.",
+      "join.sub": "The point cloud is a start. If you have an idea, build it: fork the repository, try it out, send a pull request. An issue with a good idea counts too. It is a single HTML file; you can find your way in within an hour.",
+      "i1": "Save the finished picture as PNG or SVG",
+      "i2": "Text and colours in the address, to share pictures as a link",
+      "i3": "Record the animation as a video or GIF",
+      "i4": "Several lines and custom fonts",
+      "i5": "Touch input on phone and tablet",
+      "i6": "Colour presets, such as Bitcoin orange on black",
+      "i7": "Live data as text, for example the current block height",
+      "i8": "An English interface",
+      "join.b1": "Fork the repository",
+      "join.b2": "Suggest an idea or report a bug",
+
+      "foot.name": "Bitcoin Point Cloud",
+      "foot.p1": "a private hobby project, open source under the MIT licence. No commercial intent, no promise of support.",
+      "foot.p2": "Idea and sepia look inspired by the visualisation",
+      "foot.p3": ". Independent implementation, no copied code.",
+      "foot.l1": "Source on GitHub",
+      "foot.l2": "Suggest an idea or report a bug",
+      "foot.l3": "LibraryCompass",
+      "foot.l4": "Bitcoin Clock"
+    }
+  };
+
+  var TITLES = {
+    de: "Bitcoin-Punktwolke — Text als Relief aus Tintenpunkten",
+    en: "Bitcoin Point Cloud — text as a relief of ink specks"
+  };
+
+  var nodes = document.querySelectorAll("[data-i18n]");
+  var german = {};
+  nodes.forEach(function (el) { german[el.getAttribute("data-i18n")] = el.innerHTML; });
+
+  function applyLang(lang) {
+    nodes.forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      var value = lang === "en" ? STRINGS.en[key] : german[key];
+      if (value !== undefined) { el.innerHTML = value; }
+    });
+    document.documentElement.lang = lang;
+    document.title = TITLES[lang];
+    document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang-btn") === lang));
+    });
+    try { localStorage.setItem("lc-lang", lang); } catch (e) {}
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-theme-btn") === theme));
+    });
+    try { localStorage.setItem("lc-theme", theme); } catch (e) {}
+  }
+
+  document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyLang(b.getAttribute("data-lang-btn")); });
+  });
+  document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme-btn")); });
+  });
+
+  var savedTheme, savedLang;
+  try { savedTheme = localStorage.getItem("lc-theme"); savedLang = localStorage.getItem("lc-lang"); } catch (e) {}
+  var params = new URLSearchParams(window.location.search);
+  var pLang = params.get("lang"), pTheme = params.get("theme");
+  if (pLang === "de" || pLang === "en") { savedLang = pLang; }
+  if (pTheme === "light" || pTheme === "dark") { savedTheme = pTheme; }
+  if (!savedTheme) { savedTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; }
+  if (!savedLang) { savedLang = (navigator.language || "de").toLowerCase().indexOf("de") === 0 ? "de" : "en"; }
+  applyTheme(savedTheme);
+  applyLang(savedLang);
+
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function (e) {
+    var manual;
+    try { manual = localStorage.getItem("lc-theme"); } catch (err) {}
+    if (!manual) { applyTheme(e.matches ? "light" : "dark"); }
+  });
+})();
+</script>
+</body>
+</html>
