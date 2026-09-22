@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitcoin-Uhr — Schreibtischuhr für den Mac in Bitcoin-Orange</title>
+<meta name="description" content="Die Bitcoin-Uhr ist eine analoge Schreibtischuhr für macOS: Formeln auf den Stundenmarken, ₿ um 21 Uhr, Live-Daten von mempool.space, alles per Rechtsklick einstellbar. Privates Hobbyprojekt, quelloffen unter MIT.">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://librarycompass.com/bitcoin-uhr/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F7931A'/%3E%3Ctext x='32' y='46' font-family='Helvetica,Arial' font-size='40' font-weight='700' text-anchor='middle' fill='%23fff' transform='rotate(14 32 32)'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg1:#28104E; --bg2:#1B0C36; --bg3:#150A2C;
+    --glow1:#5A2497; --glow2:#2E3FA8; --glow3:#7A2A9E;
+    --glass:rgba(255,255,255,.055); --glass2:rgba(255,255,255,.10); --glass3:rgba(255,255,255,.16);
+    --brd:rgba(255,255,255,.11); --brd2:rgba(255,255,255,.20);
+    --text:#fff; --text2:rgba(255,255,255,.66); --text3:rgba(255,255,255,.40);
+    --accent:#B45CFF; --accent2:#7B3BE8; --accentInk:#fff;
+    --cyan:#4FD8E8; --mint:#56E39F; --gold:#FFC24F; --pink:#FF6BC1;
+    --shadowCard:0 2px 6px rgba(0,0,0,.22), 0 18px 44px rgba(0,0,0,.30);
+    --shadowShot:0 3px 10px rgba(0,0,0,.34), 0 24px 60px rgba(0,0,0,.45);
+    --glow:0 0 0 1px rgba(255,255,255,.14), 0 14px 40px rgba(180,92,255,.38);
+  }
+  html[data-theme="light"]{
+    --bg1:#FAF7FF; --bg2:#F3EEFD; --bg3:#F3EEFD;
+    --glow1:#E5D6FF; --glow2:#D9E3FF; --glow3:#F0DAFB;
+    --glass:rgba(255,255,255,.66); --glass2:rgba(255,255,255,.86); --glass3:rgba(124,70,200,.10);
+    --brd:rgba(74,38,124,.12); --brd2:rgba(74,38,124,.20);
+    --text:#1E1136; --text2:rgba(30,17,54,.62); --text3:rgba(30,17,54,.40);
+    --accent:#8B3FE0; --accent2:#6A29C4;
+    --cyan:#1F9BB0; --mint:#1E9E6A; --gold:#C8892A; --pink:#D4459B;
+    --shadowCard:0 2px 6px rgba(40,16,78,.06), 0 18px 44px rgba(40,16,78,.10);
+    --shadowShot:0 3px 10px rgba(40,16,78,.10), 0 24px 60px rgba(40,16,78,.16);
+    --glow:0 0 0 1px rgba(255,255,255,.6), 0 14px 40px rgba(139,63,224,.24);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text); background:var(--bg3);
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(120% 95% at 10% -12%, var(--glow1), transparent 60%),
+      radial-gradient(95% 80% at 97% 6%, var(--glow2), transparent 58%),
+      radial-gradient(70% 60% at 60% 108%, var(--glow3), transparent 55%),
+      linear-gradient(163deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 26px}
+  a{color:inherit}
+
+  /* ---- Kopfzeile ---- */
+  header{position:sticky; top:0; z-index:50; backdrop-filter:blur(24px);
+         background:color-mix(in srgb, var(--bg3) 62%, transparent); border-bottom:1px solid var(--brd)}
+  .bar{display:flex; align-items:center; gap:14px; height:62px}
+  .brand{display:flex; align-items:center; gap:11px; font-size:15px; font-weight:560; text-decoration:none; margin-right:auto}
+  .mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(150deg,var(--accent),var(--accent2));
+        box-shadow:0 3px 10px rgba(123,59,232,.45); display:grid; place-items:center; flex:0 0 auto}
+  .mark svg{width:16px;height:16px}
+  .ctl{display:flex; gap:3px; padding:3px; border-radius:12px; background:var(--glass); border:1px solid var(--brd)}
+  .ctl button{
+    appearance:none; border:0; cursor:pointer; background:transparent; color:var(--text3);
+    font:inherit; font-size:11.5px; font-weight:600; letter-spacing:.04em;
+    padding:5px 10px; border-radius:9px; transition:background .12s ease,color .12s ease;
+  }
+  .ctl button[aria-pressed="true"]{background:var(--glass3); color:var(--text)}
+  .ctl button:hover{color:var(--text)}
+  .gh{display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-size:13px; font-weight:500;
+      padding:8px 14px; border-radius:11px; border:1px solid var(--brd2); background:var(--glass);
+      transition:background .12s ease}
+  .gh:hover{background:var(--glass2)}
+  .gh svg{width:15px;height:15px;fill:currentColor}
+  @media(max-width:720px){ .gh span{display:none} }
+
+  /* ---- Hero ---- */
+  .hero{padding:74px 0 0; text-align:center}
+  .pill{display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--text2);
+        padding:6px 13px; border-radius:26px; background:var(--glass); border:1px solid var(--brd); margin-bottom:22px}
+  .pill i{width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;font-style:normal}
+  h1{font-size:clamp(38px,6.4vw,64px); font-weight:300; letter-spacing:-.03em; line-height:1.06; margin:0 0 18px}
+  .lede{font-size:clamp(16px,2.1vw,19.5px); font-weight:300; color:var(--text2);
+        max-width:660px; margin:0 auto 30px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
+  .btn{display:inline-flex; align-items:center; gap:10px; text-decoration:none; font-size:14.5px; font-weight:500;
+       height:52px; padding:0 30px; border-radius:26px; border:1px solid transparent; transition:filter .12s ease,background .12s ease}
+  .btn-primary{background:linear-gradient(150deg,var(--accent),var(--accent2)); color:var(--accentInk); box-shadow:var(--glow)}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-ghost{background:var(--glass); border-color:var(--brd2); color:var(--text)}
+  .btn-ghost:hover{background:var(--glass2)}
+  .btn svg{width:17px;height:17px;fill:currentColor}
+  .req{font-size:12px; color:var(--text3)}
+
+  /* ---- Screenshots ---- */
+  .shot{border-radius:14px; border:1px solid var(--brd); box-shadow:var(--shadowShot);
+        display:block; width:100%; height:auto; background:var(--glass)}
+  .hero-shot{margin:44px auto 0; max-width:1060px}
+  figure{margin:0}
+  figcaption{font-size:12.5px; color:var(--text3); text-align:center; margin-top:12px}
+
+  /* ---- Abschnitte ---- */
+  section{padding:78px 0}
+  .eyebrow{font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+           color:var(--text3); margin:0 0 12px}
+  h2{font-size:clamp(26px,3.6vw,36px); font-weight:300; letter-spacing:-.03em; margin:0 0 14px; line-height:1.15}
+  h3{font-size:16px; font-weight:560; margin:0 0 7px; letter-spacing:-.01em}
+  .sub{color:var(--text2); font-size:15.5px; font-weight:300; max-width:640px; margin:0 0 38px}
+  .center{text-align:center} .center .sub{margin-left:auto;margin-right:auto}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:16px}
+  .card{background:var(--glass); border:1px solid var(--brd); border-radius:20px; padding:24px 22px;
+        box-shadow:var(--shadowCard); backdrop-filter:blur(20px)}
+  .card p{margin:0; color:var(--text2); font-size:13.8px; font-weight:300}
+  .tile{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:15px;
+        box-shadow:0 3px 10px rgba(0,0,0,.22)}
+  .tile svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .t1{background:linear-gradient(150deg,#B45CFF,#7B3BE8)} .t2{background:linear-gradient(150deg,#4FD8E8,#2E3FA8)}
+  .t3{background:linear-gradient(150deg,#56E39F,#177A5A)} .t4{background:linear-gradient(150deg,#FFC24F,#8A6516)}
+  .t5{background:linear-gradient(150deg,#FF6BC1,#6E1E8E)} .t6{background:linear-gradient(150deg,#FFB347,#B8531A)}
+  kbd{font:inherit; font-size:11.5px; font-weight:600; padding:1.5px 6px; border-radius:6px;
+      background:var(--glass3); border:1px solid var(--brd); color:var(--text2); white-space:nowrap}
+
+  .gallery{display:grid; gap:56px}
+  .g-row{display:grid; grid-template-columns:1fr; gap:26px; align-items:center}
+  @media(min-width:900px){
+    .g-row{grid-template-columns:1fr 1.32fr; gap:44px}
+    .g-row.flip .g-txt{order:2}
+  }
+  .g-txt h3{font-size:21px; font-weight:400; letter-spacing:-.02em; margin-bottom:10px}
+  .g-txt p{color:var(--text2); font-size:14.5px; font-weight:300; margin:0}
+
+  .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:26px}
+  .step{background:var(--glass); border:1px solid var(--brd); border-radius:18px; padding:20px}
+  .step b{display:block; font-size:28px; font-weight:300; letter-spacing:-.03em; color:var(--accent); margin-bottom:6px}
+  .step p{margin:0; color:var(--text2); font-size:13.5px; font-weight:300}
+  pre{background:var(--glass2); border:1px solid var(--brd); border-radius:16px; padding:18px 20px;
+      overflow-x:auto; margin:0; box-shadow:var(--shadowCard)}
+  code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace; font-size:12.8px; line-height:1.85; color:var(--text2)}
+  code .c{color:var(--text3)} code .k{color:var(--cyan)}
+
+  .note{background:var(--glass); border:1px solid var(--brd); border-left:3px solid var(--accent);
+        border-radius:14px; padding:18px 22px; color:var(--text2); font-size:13.8px; font-weight:300}
+  .note strong{color:var(--text); font-weight:560}
+
+  footer{border-top:1px solid var(--brd); padding:44px 0 60px; margin-top:20px}
+  .f-grid{display:flex; flex-wrap:wrap; gap:26px; justify-content:space-between; align-items:flex-start}
+  footer p{margin:0 0 8px; font-size:12.8px; color:var(--text3); font-weight:300; max-width:560px}
+  footer a{color:var(--text2)}
+  footer a:hover{color:var(--text)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* ---- Ergänzungen Bitcoin-Uhr ---- */
+  .mark.btc{background:linear-gradient(150deg,#FFB347,#F7931A 55%,#B8531A); box-shadow:0 3px 10px rgba(247,147,26,.45);
+            color:#fff; font-weight:700; font-size:16px; line-height:1}
+  .mark.btc span{display:block; transform:rotate(14deg)}
+  .brand{white-space:nowrap}
+  .formulas{margin-bottom:64px}
+  .back{font-size:13px; color:var(--text2); text-decoration:none; padding:8px 4px}
+  .back:hover{color:var(--text)}
+  @media(max-width:720px){ .back{display:none} }
+  .clock{display:block; width:100%; max-width:520px; height:auto; margin:40px auto 0;
+         filter:drop-shadow(0 30px 60px rgba(0,0,0,.35))}
+  .pair{display:grid; grid-template-columns:1fr; gap:26px}
+  @media(min-width:760px){ .pair{grid-template-columns:1fr 1fr} }
+  .pair img{display:block; width:100%; height:auto; max-width:440px; margin:0 auto;
+            filter:drop-shadow(0 22px 44px rgba(0,0,0,.30))}
+  .win{border-radius:14px; box-shadow:var(--shadowShot); display:block; width:100%; height:auto; max-width:440px; margin:0 auto}
+
+  .howto{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px}
+  .menu{background:color-mix(in srgb, var(--bg2) 80%, #000 20%); border:1px solid var(--brd2); border-radius:12px;
+        padding:6px; box-shadow:var(--shadowCard); font-size:13px; max-width:420px}
+  html[data-theme="light"] .menu{background:#fff}
+  .menu div{display:flex; justify-content:space-between; gap:18px; padding:6px 10px; border-radius:6px}
+  .menu div:hover{background:var(--accent); color:#fff}
+  .menu div:hover small{color:#fff}
+  .menu small{color:var(--text3); font-size:12px; text-align:right}
+  .menu hr{border:0; border-top:1px solid var(--brd); margin:5px 8px}
+  .menu-wrap{display:grid; grid-template-columns:1fr; gap:28px; align-items:start}
+  @media(min-width:900px){ .menu-wrap{grid-template-columns:420px 1fr} }
+  .menu-notes p{margin:0 0 14px; color:var(--text2); font-size:14px; font-weight:300}
+  .menu-notes strong{color:var(--text); font-weight:560}
+
+  .formulas{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+  .fx{background:var(--glass); border:1px solid var(--brd); border-radius:14px; padding:12px 14px}
+  .fx b{display:block; font-size:12px; font-weight:600; color:var(--text3); letter-spacing:.04em}
+  .fx span{display:block; font-family:"New York","Iowan Old Style",Georgia,serif; font-size:18px; color:#F7931A; margin:3px 0 2px}
+  .fx small{color:var(--text3); font-size:11.5px; font-variant-numeric:tabular-nums}
+  .ideas{columns:2 260px; column-gap:28px; margin:0 0 30px; padding-left:18px; color:var(--text2); font-size:14px; font-weight:300}
+  .ideas li{margin:0 0 8px; break-inside:avoid}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#top">
+      <span class="mark btc" aria-hidden="true"><span>₿</span></span>
+      Bitcoin-Uhr
+    </a>
+    <a class="back" href="../" data-i18n="nav.back">← LibraryCompass</a>
+
+    <div class="ctl" role="group" aria-label="Sprache / Language">
+      <button type="button" data-lang-btn="de" aria-pressed="true">DE</button>
+      <button type="button" data-lang-btn="en" aria-pressed="false">EN</button>
+    </div>
+
+    <div class="ctl" role="group" aria-label="Erscheinungsbild / Appearance">
+      <button type="button" data-theme-btn="light" aria-pressed="false" title="Hell / Light">☀</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="true" title="Dunkel / Dark">☾</button>
+    </div>
+
+    <a class="gh" href="https://github.com/JoeMartinBTC/Bitcoin_clock" rel="noopener">
+      <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+      <span data-i18n="nav.gh">Quellcode</span>
+    </a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <div class="wrap hero">
+    <span class="pill"><i></i><span data-i18n="hero.pill">Hobbyprojekt · quelloffen · macOS</span></span>
+    <h1 data-i18n="hero.h1">Zeit, in<br>Bitcoin-Orange.</h1>
+    <p class="lede" data-i18n="hero.lede">Die Bitcoin-Uhr ist eine analoge Schreibtischuhr für den Mac. Auf den Stundenmarken erscheinen Formeln, deren Wert gerundet die Stunde ergibt, um 21 Uhr steht das ₿, und auf dem Blatt laufen Blockhöhe, Gebühren und Kurs von mempool.space mit.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/JoeMartinBTC/Bitcoin_clock" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+        <span data-i18n="hero.cta1">Auf GitHub ansehen</span>
+      </a>
+      <a class="btn btn-ghost" href="#bedienung"><span data-i18n="hero.cta2">So wird sie bedient</span></a>
+    </div>
+    <p class="req" data-i18n="hero.req">macOS 14 oder neuer · Apple Silicon &amp; Intel · MIT-Lizenz</p>
+
+    <img class="clock" src="img/uhr-pm.webp" width="1000" height="1000" loading="eager"
+         alt="Die Bitcoin-Uhr um 21:45 Uhr: an der Stelle der 21 steht die Formel φ⁸/√5, dazu Blockhöhe, Gebühren und Kurs">
+  </div>
+
+  <!-- WARUM -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="why.eyebrow">Worum es geht</p>
+    <h2 data-i18n="why.h2">Eine Uhr, die man lesen lernt.</h2>
+    <p class="sub" data-i18n="why.sub">Die Idee stammt von einer „mathematischen Uhr“, die im Netz kursierte: zwölf Formeln statt zwölf Zahlen. Daraus wurde eine Uhr für Bitcoiner — mit 24 Formeln, dem ₿ an der Stelle der 21 für die 21 Millionen, und einem Blick auf das, was im Netzwerk gerade passiert.</p>
+    <div class="note">
+      <strong data-i18n="why.noteT">Ein privates Hobbyprojekt, genau wie LibraryCompass.</strong>
+      <span data-i18n="why.noteB"> Kein Produkt, kein Geschäftsmodell, kein Support-Versprechen. Die Uhr sammelt nichts und sendet nichts; sie fragt nur die öffentliche Schnittstelle von mempool.space ab, und nur für die Anzeigen, die gerade eingeschaltet sind.</span>
+    </div>
+  </section>
+
+  <!-- FUNKTIONEN -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="feat.eyebrow">Was sie kann</p>
+    <h2 data-i18n="feat.h2">Sechs Dinge, die sie macht.</h2>
+    <p class="sub" data-i18n="feat.sub">Sie liegt als randloses Fenster auf dem Schreibtisch, über den Symbolen und unter allen Programmfenstern. Oder auf Wunsch über allem.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="tile t6"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3 data-i18n="f1.h">12 Stunden mit AM und PM</h3>
+        <p data-i18n="f1.p">Vormittags stehen 1 bis 11 auf dem Blatt, nachmittags 13 bis 23 — oben immer die 12. Nachmittags steht an der Stelle der 9 das ₿ für 21 Uhr. Unten zeigt die Uhr, ob gerade AM oder PM ist.</p>
+      </div>
+      <div class="card">
+        <div class="tile t1"><svg viewBox="0 0 24 24"><path d="M5 19l4-14M13 9h6M13 15h6M16 6v6"/></svg></div>
+        <h3 data-i18n="f2.h">Formeln auf den 5-Minuten-Strichen</h3>
+        <p data-i18n="f2.p">Steht der Minutenzeiger genau auf einem Strich, verwandelt sich die Zahl dort für diese Minute in eine Formel mit ihrem Wert, etwa e^π − π ≈ 20 oder φ⁸/√5 ≈ 21. Danach wird sie wieder zur Zahl.</p>
+      </div>
+      <div class="card">
+        <div class="tile t4"><svg viewBox="0 0 24 24"><path d="M4 18h16M6 18V10M10 18V6M14 18v-5M18 18V8"/></svg></div>
+        <h3 data-i18n="f3.h">Live-Daten von mempool.space</h3>
+        <p data-i18n="f3.p">Vier Plätze auf dem Blatt zeigen als schlichten Text wahlweise Blockhöhe, Gebühren, Kurs in USD oder EUR, wartende Transaktionen, Blöcke bis zum Halving oder die nächste Difficulty-Anpassung.</p>
+      </div>
+      <div class="card">
+        <div class="tile t2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg></div>
+        <h3 data-i18n="f4.h">Alles wird erklärt</h3>
+        <p data-i18n="f4.p">Ein Klick auf eine Formel erklärt sie Schritt für Schritt, samt jedem Zeichen darin — π, e, φ, Bogenmaß. Ein Klick auf Blockhöhe oder Kurs erklärt in einfacher Sprache, was die Zahl bedeutet.</p>
+      </div>
+      <div class="card">
+        <div class="tile t3"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></div>
+        <h3 data-i18n="f5.h">Per Rechtsklick einstellbar</h3>
+        <p data-i18n="f5.p">Größe, Sekundenzeiger, Formeln, Wasserzeichen, AM/PM, jede der vier Anzeigen, wie oft sie aktualisiert werden, ob die Uhr über allen Fenstern liegt und ob sie beim Anmelden startet.</p>
+      </div>
+      <div class="card">
+        <div class="tile t5"><svg viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></div>
+        <h3 data-i18n="f6.h">Praktisch keine Last</h3>
+        <p data-i18n="f6.p">Die Zeiger dreht Core Animation, also macOS selbst. Die App rechnet dafür nicht mit; im Betrieb misst man bei ihr 0 % CPU. Wer es noch sparsamer will, schaltet den Sekundenzeiger ab.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEDIENUNG -->
+  <section class="wrap" id="bedienung">
+    <p class="eyebrow" data-i18n="use.eyebrow">Bedienung</p>
+    <h2 data-i18n="use.h2">Vier Handgriffe, mehr gibt es nicht.</h2>
+    <p class="sub" data-i18n="use.sub">Die Uhr hat kein Fenster mit Knöpfen und kein Symbol im Dock. Alles läuft über die Maus direkt auf dem Zifferblatt.</p>
+
+    <div class="howto" style="margin-bottom:44px">
+      <div class="step"><b>1</b><p><strong data-i18n="use.s1h">Verschieben</strong><br><span data-i18n="use.s1">Mit der linken Maustaste irgendwo auf die Uhr klicken und ziehen. Sie merkt sich ihren Platz, auch über einen Neustart hinweg.</span></p></div>
+      <div class="step"><b>2</b><p><strong data-i18n="use.s2h">Einstellen</strong><br><span data-i18n="use.s2">Rechtsklick auf die Uhr öffnet das Menü. Jede Einstellung wirkt sofort und bleibt gespeichert.</span></p></div>
+      <div class="step"><b>3</b><p><strong data-i18n="use.s3h">Formel verstehen</strong><br><span data-i18n="use.s3">Zu jeder vollen fünften Minute erscheint eine Formel. Draufklicken öffnet ein weißes Fenster mit Rechenweg und der Bedeutung jedes Zeichens.</span></p></div>
+      <div class="step"><b>4</b><p><strong data-i18n="use.s4h">Daten verstehen</strong><br><span data-i18n="use.s4">Auf Blockhöhe, Gebühren oder Kurs klicken. Erst kommt eine Erklärung für Einsteiger, von dort führt ein Knopf auf Wunsch zu mempool.space.</span></p></div>
+    </div>
+
+    <div class="menu-wrap">
+      <div class="menu" role="img" aria-label="Das Rechtsklick-Menü der Bitcoin-Uhr">
+        <div><span data-i18n="m.size">Größe</span><small data-i18n="m.sizeV">Klein · Mittel · Groß · Sehr groß ›</small></div>
+        <div><span data-i18n="m.sec">Sekundenzeiger (CPU-Last)</span><small>›</small></div>
+        <div><span data-i18n="m.show">Anzeige</span><small data-i18n="m.showV">Formeln · ₿ · AM/PM ›</small></div>
+        <div><span data-i18n="m.comp">Komplikationen (mempool.space)</span><small>›</small></div>
+        <hr>
+        <div><span data-i18n="m.top">Über allen Fenstern</span><small></small></div>
+        <div><span data-i18n="m.login">Beim Anmelden starten</span><small>✓</small></div>
+        <hr>
+        <div><span data-i18n="m.quit">Bitcoin-Uhr beenden</span><small></small></div>
+      </div>
+      <div class="menu-notes">
+        <p><strong data-i18n="mn.sizeH">Größe.</strong> <span data-i18n="mn.size">Vier Stufen von 260 bis 640 Punkten. Die Uhr wächst um ihre Mitte, sie springt nicht weg.</span></p>
+        <p><strong data-i18n="mn.secH">Sekundenzeiger.</strong> <span data-i18n="mn.sec">Aus (keine Last), harter Sprung (voreingestellt, minimale Last), weicher Sprung oder gleitend wie ein mechanisches Werk (höchste Last). Das Menü nennt die Last gleich mit.</span></p>
+        <p><strong data-i18n="mn.showH">Anzeige.</strong> <span data-i18n="mn.show">Formeln, das ₿-Wasserzeichen und die AM/PM-Anzeige lassen sich einzeln ein- und ausschalten.</span></p>
+        <p><strong data-i18n="mn.compH">Komplikationen.</strong> <span data-i18n="mn.comp">Für jeden der vier Plätze — oben, links, rechts, unten — den Inhalt wählen oder „Aus“. Dazu das Intervall (jede Minute, alle 5 oder alle 15 Minuten) und „Jetzt aktualisieren“. Ist alles aus, verbindet sich die Uhr mit niemandem.</span></p>
+        <p><strong data-i18n="mn.restH">Ebene und Autostart.</strong> <span data-i18n="mn.rest">Normal liegt die Uhr auf dem Schreibtisch unter allen Fenstern; „Über allen Fenstern“ holt sie nach vorn. Beim ersten Start trägt sie sich als Anmeldeobjekt ein, das Häkchen nimmt es wieder zurück.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANSICHTEN -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="shots.eyebrow">Ansichten</p>
+    <h2 data-i18n="shots.h2">Vormittags, nachmittags, auf Nachfrage.</h2>
+    <p class="sub" data-i18n="shots.sub">Links 10:12 Uhr ohne Formel, rechts 21:45 Uhr: Der Minutenzeiger steht auf der 9, dort erscheint die Formel für 21. Die Oberfläche der App ist deutsch.</p>
+    <div class="pair" style="margin-bottom:56px">
+      <figure><img src="img/uhr-am.webp" width="1000" height="1000" loading="lazy" alt="Die Uhr um 10:12 Uhr vormittags mit den Zahlen 1 bis 11"><figcaption data-i18n="shots.am">Vormittags: 1 bis 11, AM leuchtet.</figcaption></figure>
+      <figure><img src="img/uhr-pm.webp" width="1000" height="1000" loading="lazy" alt="Die Uhr um 21:45 Uhr mit der Formel φ⁸/√5 an der ₿-Position"><figcaption data-i18n="shots.pm">Nachmittags: 13 bis 23, das ₿ steht für 21.</figcaption></figure>
+    </div>
+    <div class="pair">
+      <figure><img class="win" src="img/formel-21.webp" width="1040" height="1555" loading="lazy" alt="Erklärfenster zur Formel φ⁸/√5 mit Erklärung der Zeichen φ, Wurzel, Potenz und Fibonacci-Zahlen"><figcaption data-i18n="shots.fx">Klick auf eine Formel: Rechenweg und jedes Zeichen erklärt.</figcaption></figure>
+      <div style="display:grid; gap:26px">
+        <figure><img class="win" src="img/info-gebuehren.webp" width="1040" height="1214" loading="lazy" alt="Erklärfenster zu den Gebühren in sat pro vByte"><figcaption data-i18n="shots.fee">Klick auf die Gebühren: was eine Überweisung gerade kostet.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORMELN -->
+  <section class="wrap">
+    <p class="eyebrow" data-i18n="fx.eyebrow">Die 24 Formeln</p>
+    <h2 data-i18n="fx.h2">Jede ergibt gerundet ihre Stunde.</h2>
+    <p class="sub" data-i18n="fx.sub">Die ersten zwölf stammen aus der Vorlage, 13 bis 24 sind für diese Uhr dazugekommen. Winkel in sec und csc stehen im Bogenmaß.</p>
+    <div class="formulas">
+      <div class="fx"><b>1</b><span>ln(3)</span><small>1,0986</small></div>
+      <div class="fx"><b>2</b><span>7π / 11</span><small>1,9992</small></div>
+      <div class="fx"><b>3</b><span>√2 + π/2</span><small>2,9850</small></div>
+      <div class="fx"><b>4</b><span>7 / ∛5</span><small>4,0936</small></div>
+      <div class="fx"><b>5</b><span>e<sup>φ</sup></span><small>5,0432</small></div>
+      <div class="fx"><b>6</b><span>sec²(20)</span><small>6,0049</small></div>
+      <div class="fx"><b>7</b><span>4√3</span><small>6,9282</small></div>
+      <div class="fx"><b>8</b><span>5φ</span><small>8,0902</small></div>
+      <div class="fx"><b>9</b><span>2π + e</span><small>9,0015</small></div>
+      <div class="fx"><b>10</b><span>sinh(3)</span><small>10,0179</small></div>
+      <div class="fx"><b>11</b><span>π³ − 20</span><small>11,0063</small></div>
+      <div class="fx"><b>12</b><span>csc²(16)</span><small>12,0644</small></div>
+      <div class="fx"><b>13</b><span>π² + π</span><small>13,0112</small></div>
+      <div class="fx"><b>14</b><span>10√2</span><small>14,1421</small></div>
+      <div class="fx"><b>15</b><span>e<sup>e</sup></span><small>15,1543</small></div>
+      <div class="fx"><b>16</b><span>ln 10⁷</span><small>16,1181</small></div>
+      <div class="fx"><b>17</b><span>e<sup>2√2</sup></span><small>16,9188</small></div>
+      <div class="fx"><b>18</b><span>φ⁶</span><small>17,9443</small></div>
+      <div class="fx"><b>19</b><span>e³ − 1</span><small>19,0855</small></div>
+      <div class="fx"><b>20</b><span>e<sup>π</sup> − π</span><small>19,9991</small></div>
+      <div class="fx"><b>21 · ₿</b><span>φ⁸ / √5</span><small>21,0095</small></div>
+      <div class="fx"><b>22</b><span>7π</span><small>21,9911</small></div>
+      <div class="fx"><b>23</b><span>e<sup>π</sup></span><small>23,1407</small></div>
+      <div class="fx"><b>24</b><span>Γ(5)</span><small>24,0000</small></div>
+    </div>
+  </section>
+
+  <!-- BAUEN -->
+  <section class="wrap" id="build">
+    <p class="eyebrow" data-i18n="build.eyebrow">Installation</p>
+    <h2 data-i18n="build.h2">Selbst bauen, in einem Befehl.</h2>
+    <p class="sub" data-i18n="build.sub">Wie bei LibraryCompass gibt es bewusst keine fertige Programmdatei: ohne bezahltes Apple-Entwicklerprogramm ließe sie sich nicht notarisieren. Der Quellcode ist vollständig, das Skript baut, signiert ad hoc, installiert nach „Programme“ und startet die Uhr.</p>
+<pre><code><span class="c"># <span data-i18n="build.c1">Xcode-Befehlszeilenwerkzeuge, falls noch nicht vorhanden</span></span>
+<span class="k">xcode-select</span> --install
+
+<span class="c"># <span data-i18n="build.c2">Quellcode holen, bauen, installieren, starten</span></span>
+<span class="k">git</span> clone https://github.com/JoeMartinBTC/Bitcoin_clock.git
+<span class="k">cd</span> Bitcoin_clock
+<span class="k">bash</span> Scripts/build_local_app.sh</code></pre>
+  </section>
+
+  <!-- MITMACHEN -->
+  <section class="wrap" id="mitmachen">
+    <p class="eyebrow" data-i18n="join.eyebrow">Mitmachen</p>
+    <h2 data-i18n="join.h2">Baut sie weiter.</h2>
+    <p class="sub" data-i18n="join.sub">Die Uhr ist ein Anfang, kein fertiges Produkt. Wer eine Idee hat, soll sie bauen: Repository forken, ausprobieren, einen Pull Request schicken. Auch ein Issue mit einer guten Idee ist ein Beitrag. Der Code ist klein und in SwiftUI geschrieben, der Einstieg gelingt an einem Abend.</p>
+    <ul class="ideas">
+      <li data-i18n="i1">Weitere Komplikationen: Hashrate, Sats pro Euro, Lightning-Kapazität, Zeit seit dem letzten Block</li>
+      <li data-i18n="i2">Eine englische Oberfläche und weitere Sprachen</li>
+      <li data-i18n="i3">Neue Formeln oder ganze Formelsätze zum Umschalten</li>
+      <li data-i18n="i4">Andere Zifferblätter und Farben, etwa ein helles Blatt</li>
+      <li data-i18n="i5">Ein echtes macOS-Widget für die Mitteilungszentrale</li>
+      <li data-i18n="i6">Die Uhr als Bildschirmschoner oder als iPhone-App</li>
+      <li data-i18n="i7">Ein Wecker, der zum nächsten Halving klingelt</li>
+      <li data-i18n="i8">Eine eigene Node statt mempool.space als Datenquelle</li>
+    </ul>
+    <div class="cta" style="justify-content:flex-start">
+      <a class="btn btn-primary" href="https://github.com/JoeMartinBTC/Bitcoin_clock/fork" rel="noopener"><span data-i18n="join.b1">Repository forken</span></a>
+      <a class="btn btn-ghost" href="https://github.com/JoeMartinBTC/Bitcoin_clock/issues" rel="noopener"><span data-i18n="join.b2">Idee oder Fehler melden</span></a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap f-grid">
+    <div>
+      <p><strong style="color:var(--text2)">Bitcoin-Uhr</strong> — <span data-i18n="foot.p1">privates Hobbyprojekt, quelloffen unter der MIT-Lizenz. Keine kommerzielle Absicht, kein Support-Versprechen.</span></p>
+      <p data-i18n="foot.p2">Live-Daten von mempool.space über deren öffentliche Schnittstelle. Nicht verbunden mit mempool.space. Die Idee der Formeluhr stammt von @Math_files.</p>
+      <p data-i18n="foot.p3">Keine Anlageberatung. Kurs und Gebühren dienen nur der Anzeige.</p>
+    </div>
+    <div>
+      <p><a href="https://github.com/JoeMartinBTC/Bitcoin_clock" rel="noopener" data-i18n="foot.l1">Quellcode auf GitHub</a></p>
+      <p><a href="https://github.com/JoeMartinBTC/Bitcoin_clock/issues" rel="noopener" data-i18n="foot.l2">Idee oder Fehler melden</a></p>
+      <p><a href="../" data-i18n="foot.l3">LibraryCompass</a></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var STRINGS = {
+    en: {
+      "nav.back": "← LibraryCompass",
+      "nav.gh": "Source",
+      "hero.pill": "Hobby project · open source · macOS",
+      "hero.h1": "Time, in<br>Bitcoin orange.",
+      "hero.lede": "The Bitcoin Clock is an analogue desk clock for the Mac. Formulas appear on the hour marks whose value rounds to that very hour, the ₿ stands at 21 o’clock, and block height, fees and price from mempool.space run along on the dial.",
+      "hero.cta1": "View on GitHub",
+      "hero.cta2": "How to use it",
+      "hero.req": "macOS 14 or later · Apple silicon &amp; Intel · MIT licence",
+
+      "why.eyebrow": "What it is",
+      "why.h2": "A clock you learn to read.",
+      "why.sub": "The idea comes from a “mathematical clock” that went round online: twelve formulas instead of twelve numbers. It became a clock for Bitcoiners — with 24 formulas, the ₿ in place of the 21 for the 21 million, and a glance at what is happening on the network.",
+      "why.noteT": "A private hobby project, just like LibraryCompass.",
+      "why.noteB": " No product, no business model, no promise of support. The clock collects nothing and sends nothing; it only queries the public mempool.space API, and only for the displays that are switched on.",
+
+      "feat.eyebrow": "What it does",
+      "feat.h2": "Six things it does.",
+      "feat.sub": "It sits on the desktop as a borderless window, above the icons and below every app window. Or above everything, if you like.",
+      "f1.h": "12 hours with AM and PM",
+      "f1.p": "In the morning the dial shows 1 to 11, in the afternoon 13 to 23 — always 12 at the top. In the afternoon the ₿ stands in place of the 9, for 21 o’clock. At the bottom the clock shows whether it is AM or PM.",
+      "f2.h": "Formulas on the five-minute marks",
+      "f2.p": "When the minute hand sits exactly on a mark, the number there turns into a formula with its value for that minute, such as e^π − π ≈ 20 or φ⁸/√5 ≈ 21. Then it becomes a number again.",
+      "f3.h": "Live data from mempool.space",
+      "f3.p": "Four places on the dial show, as plain text, your choice of block height, fees, price in USD or EUR, waiting transactions, blocks until the halving or the next difficulty adjustment.",
+      "f4.h": "Everything is explained",
+      "f4.p": "Click a formula and it is explained step by step, including every symbol in it — π, e, φ, radians. Click the block height or the price and a plain-language note explains what the number means.",
+      "f5.h": "Set up with a right-click",
+      "f5.p": "Size, second hand, formulas, watermark, AM/PM, each of the four displays, how often they refresh, whether the clock floats above all windows and whether it starts at login.",
+      "f6.h": "Next to no load",
+      "f6.p": "The hands are turned by Core Animation, meaning macOS itself. The app does no work for that; while running it measures 0 % CPU. For even less, switch off the second hand.",
+
+      "use.eyebrow": "How to use it",
+      "use.h2": "Four moves, that is all.",
+      "use.sub": "The clock has no window full of buttons and no Dock icon. Everything happens with the mouse, right on the dial.",
+      "use.s1h": "Move",
+      "use.s1": "Click anywhere on the clock with the left mouse button and drag. It remembers its place, even across a restart.",
+      "use.s2h": "Configure",
+      "use.s2": "Right-click the clock to open the menu. Every setting applies at once and is kept.",
+      "use.s3h": "Understand a formula",
+      "use.s3": "A formula appears at every full fifth minute. Click it to open a white window with the calculation and the meaning of every symbol.",
+      "use.s4h": "Understand the data",
+      "use.s4": "Click the block height, fees or price. First comes an explanation for beginners; from there a button takes you to mempool.space if you want.",
+      "m.size": "Size",
+      "m.sizeV": "Small · Medium · Large · Extra large ›",
+      "m.sec": "Second hand (CPU load)",
+      "m.show": "Display",
+      "m.showV": "Formulas · ₿ · AM/PM ›",
+      "m.comp": "Complications (mempool.space)",
+      "m.top": "Above all windows",
+      "m.login": "Start at login",
+      "m.quit": "Quit Bitcoin Clock",
+      "mn.sizeH": "Size.",
+      "mn.size": "Four steps from 260 to 640 points. The clock grows around its centre instead of jumping away.",
+      "mn.secH": "Second hand.",
+      "mn.sec": "Off (no load), hard tick (default, minimal load), soft tick, or gliding like a mechanical movement (highest load). The menu names the load right there.",
+      "mn.showH": "Display.",
+      "mn.show": "Formulas, the ₿ watermark and the AM/PM indicator can each be switched on and off.",
+      "mn.compH": "Complications.",
+      "mn.comp": "For each of the four places — top, left, right, bottom — pick the content or “Off”. Plus the interval (every minute, every 5 or every 15 minutes) and “Refresh now”. With everything off, the clock connects to no one.",
+      "mn.restH": "Layer and autostart.",
+      "mn.rest": "Normally the clock sits on the desktop below all windows; “Above all windows” brings it forward. On first launch it registers as a login item; the tick mark takes that back.",
+
+      "shots.eyebrow": "Views",
+      "shots.h2": "Morning, afternoon, on request.",
+      "shots.sub": "Left, 10:12 without a formula; right, 21:45: the minute hand is on the 9, where the formula for 21 appears. The app’s interface is in German.",
+      "shots.am": "Morning: 1 to 11, AM lit.",
+      "shots.pm": "Afternoon: 13 to 23, the ₿ stands for 21.",
+      "shots.fx": "Click a formula: the calculation and every symbol explained.",
+      "shots.fee": "Click the fees: what a transfer costs right now.",
+
+      "fx.eyebrow": "The 24 formulas",
+      "fx.h2": "Each rounds to its hour.",
+      "fx.sub": "The first twelve come from the original, 13 to 24 were added for this clock. Angles in sec and csc are in radians.",
+
+      "build.eyebrow": "Installation",
+      "build.h2": "Build it yourself, in one command.",
+      "build.sub": "As with LibraryCompass there is deliberately no ready-made download: without a paid Apple developer programme it could not be notarised. The source is complete; the script builds, signs ad hoc, installs into Applications and launches the clock.",
+      "build.c1": "Xcode command line tools, if you do not have them yet",
+      "build.c2": "get the source, build, install, launch",
+
+      "join.eyebrow": "Contribute",
+      "join.h2": "Keep building it.",
+      "join.sub": "The clock is a start, not a finished product. If you have an idea, build it: fork the repository, try it out, send a pull request. An issue with a good idea counts too. The code is small and written in SwiftUI; you can find your way in over an evening.",
+      "i1": "More complications: hashrate, sats per euro, Lightning capacity, time since the last block",
+      "i2": "An English interface and more languages",
+      "i3": "New formulas, or whole formula sets to switch between",
+      "i4": "Other dials and colours, such as a light face",
+      "i5": "A real macOS widget for Notification Centre",
+      "i6": "The clock as a screen saver or an iPhone app",
+      "i7": "An alarm that rings at the next halving",
+      "i8": "Your own node instead of mempool.space as the data source",
+      "join.b1": "Fork the repository",
+      "join.b2": "Suggest an idea or report a bug",
+
+      "foot.p1": "a private hobby project, open source under the MIT licence. No commercial intent, no promise of support.",
+      "foot.p2": "Live data from mempool.space via its public API. Not affiliated with mempool.space. The formula clock idea comes from @Math_files.",
+      "foot.p3": "Not investment advice. Price and fees are for display only.",
+      "foot.l1": "Source on GitHub",
+      "foot.l2": "Suggest an idea or report a bug",
+      "foot.l3": "LibraryCompass"
+    }
+  };
+
+  var TITLES = {
+    de: "Bitcoin-Uhr — Schreibtischuhr für den Mac in Bitcoin-Orange",
+    en: "Bitcoin Clock — a Mac desk clock in Bitcoin orange"
+  };
+
+  var nodes = document.querySelectorAll("[data-i18n]");
+  var german = {};
+  nodes.forEach(function (el) { german[el.getAttribute("data-i18n")] = el.innerHTML; });
+
+  function applyLang(lang) {
+    nodes.forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      var value = lang === "en" ? STRINGS.en[key] : german[key];
+      if (value !== undefined) { el.innerHTML = value; }
+    });
+    document.documentElement.lang = lang;
+    document.title = TITLES[lang];
+    document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang-btn") === lang));
+    });
+    try { localStorage.setItem("lc-lang", lang); } catch (e) {}
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-theme-btn") === theme));
+    });
+    try { localStorage.setItem("lc-theme", theme); } catch (e) {}
+  }
+
+  document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyLang(b.getAttribute("data-lang-btn")); });
+  });
+  document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme-btn")); });
+  });
+
+  var savedTheme, savedLang;
+  try { savedTheme = localStorage.getItem("lc-theme"); savedLang = localStorage.getItem("lc-lang"); } catch (e) {}
+  var params = new URLSearchParams(window.location.search);
+  var pLang = params.get("lang"), pTheme = params.get("theme");
+  if (pLang === "de" || pLang === "en") { savedLang = pLang; }
+  if (pTheme === "light" || pTheme === "dark") { savedTheme = pTheme; }
+  if (!savedTheme) { savedTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; }
+  if (!savedLang) { savedLang = (navigator.language || "de").toLowerCase().indexOf("de") === 0 ? "de" : "en"; }
+  applyTheme(savedTheme);
+  applyLang(savedLang);
+
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function (e) {
+    var manual;
+    try { manual = localStorage.getItem("lc-theme"); } catch (err) {}
+    if (!manual) { applyTheme(e.matches ? "light" : "dark"); }
+  });
+})();
+</script>
+</body>
+</html>
