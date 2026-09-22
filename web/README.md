@@ -50,10 +50,17 @@ or the page will jump while loading.
 The page is plain static files — any web server that can serve a directory works.
 Sync the contents of `web/` to the server's web root, make them world-readable, done:
 
-    rsync -avz --delete --exclude README.md web/ <deploy-target>:<webroot>/
+    rsync -avzc --exclude README.md web/ <deploy-target>:<webroot>/
 
 ⚠️ `--exclude README.md`, sonst landet diese Datei im Web-Root und ist öffentlich
 abrufbar. Am 2026-08-10 genau so passiert und sofort wieder entfernt.
+
+⚠️ **Kein `--delete`.** Im Web-Root liegen Dateien, die nicht aus diesem Ordner
+stammen (z. B. der geschützte Live-Viewer). `--delete` würde sie löschen. `-c`
+vergleicht per Prüfsumme, damit nur wirklich geänderte Dateien übertragen werden.
+
+`bitcoin-uhr/` ist die Unterseite der Bitcoin-Uhr
+(<https://github.com/JoeMartinBTC/Bitcoin_clock>), gleiches Erscheinungsbild.
 
 Server details, access and safety rules are documented privately and are deliberately
 not part of this repository.
