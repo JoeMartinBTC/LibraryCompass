@@ -2,7 +2,7 @@
 
 Static pages, live at <https://librarycompass.com>. No build step: what is in this folder
 is what gets served. Besides the LibraryCompass product page the site hosts the pages of
-two other private hobby projects by the same author.
+three other private hobby projects by the same author.
 
 ## Files
 
@@ -13,8 +13,9 @@ two other private hobby projects by the same author.
 | `bitcoin-uhr/` | page of the Bitcoin Clock (<https://github.com/JoeMartinBTC/Bitcoin_clock>) |
 | `bitcoin-pointcloud/` | page of the Bitcoin Point Cloud (<https://github.com/JoeMartinBTC/bitcoin-pointcloud>) |
 | `bitcoin-pointcloud/demo/index.html` | unmodified copy of the point cloud's `index.html`, embedded live on its page |
+| `goals/` | page of Goals (<https://github.com/JoeMartinBTC/goals>) |
 | `robots.txt` | allows AI crawlers explicitly, points at the sitemap |
-| `sitemap.xml` | all three pages; also the input for the server's `gen-llms.py` |
+| `sitemap.xml` | all four pages; also the input for the server's `gen-llms.py` |
 
 **No external dependencies on purpose** — no web fonts, no CDN, no analytics. Nothing
 leaves the visitor's browser, which keeps the page GDPR-uncomplicated and matches the
@@ -33,12 +34,12 @@ the script).
 
 ## Sub-pages and the shared footer
 
-All three pages share one look: the subpages copy the complete `<style>` block of
+All four pages share one look: the subpages copy the complete `<style>` block of
 `index.html` and add a few rules of their own at the end. Language and theme toggles work
 the same way and share the `localStorage` keys `lc-lang` and `lc-theme`.
 
 Every page ends with the same **“Projekte” column** in the footer: LibraryCompass, Bitcoin
-Clock and Bitcoin Point Cloud, each with a one-line description (`data-i18n="proj.*"`,
+Clock, Bitcoin Point Cloud and Goals, each with a one-line description (`data-i18n="proj.*"`,
 English strings in the page's script). The current page is marked with
 `aria-current="page"`. **Adding a project means adding it to this block on every page**
 and adding its URL to `sitemap.xml`.
@@ -64,6 +65,20 @@ it into `demo/` again and raise the `?v=` number so browsers do not keep an old 
 - The canvas only contains the specks; the paper colour is the demo page's CSS
   background. Exported screenshots are therefore transparent and need the paper colour
   `#ece2cd` put behind them before converting.
+
+### Goals (`goals/`)
+
+Images come from the app's snapshot mode, which writes them to the folder `seite/`
+(`Goals --snapshot <dir>`). The six goals on the cards are made-up examples.
+
+- Card images have a transparent background and exist per language
+  (`cwebp -q 84 -resize 2000 0` for `hero-*`, `-resize 1300 0` for `karten-*`). The script
+  swaps them when the language changes. The hero image also changes with the appearance:
+  Polarlicht on dark, Morgenrot on light. Below 700 px it uses the two-column `karten-*`
+  version, because three columns would be unreadable on a phone.
+- The settings window has no background of its own in the snapshot. Put the window colour
+  behind it before converting: `magick <in> -background '#26232d' -flatten <out>` for dark,
+  `#f2f0f6` for light, then `cwebp -q 84 -resize 1500 0`.
 
 ## Screenshots
 
