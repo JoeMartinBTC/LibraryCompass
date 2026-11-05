@@ -155,6 +155,7 @@
   /* ---- Ergänzungen Bitcoin-Uhr ---- */
   section.wrap{padding:78px 26px}   /* .wrap allein nähme den Abschnitten den Abstand nach oben und unten */
   .wrap.hero{padding:74px 26px 0}
+  @media(max-width:520px){ .brand > span:last-child{display:none} .bar{gap:8px} }   /* sonst schiebt der Name den GitHub-Knopf aus der Kopfzeile */
   .mark.btc{background:linear-gradient(150deg,#FFB347,#F7931A 55%,#B8531A); box-shadow:0 3px 10px rgba(247,147,26,.45);
             color:#fff; font-weight:700; font-size:16px; line-height:1}
   .mark.btc span{display:block; transform:rotate(14deg)}
@@ -200,7 +201,7 @@
   <div class="wrap bar">
     <a class="brand" href="#top">
       <span class="mark btc" aria-hidden="true"><span>₿</span></span>
-      Bitcoin-Uhr
+      <span>Bitcoin-Uhr</span>
     </a>
     <a class="back" href="../" data-i18n="nav.back">← LibraryCompass</a>
 

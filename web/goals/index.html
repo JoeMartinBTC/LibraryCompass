@@ -168,6 +168,7 @@
   /* ---- Ergänzungen Goals ---- */
   section.wrap{padding:78px 26px}   /* .wrap allein nähme den Abschnitten den Abstand nach oben und unten */
   .wrap.hero{padding:74px 26px 0}
+  @media(max-width:360px){ .brand > span:last-child{display:none} .bar{gap:8px} }   /* sonst schiebt der Name den GitHub-Knopf aus der Kopfzeile */
   .shots-title{margin:56px 0 0}
   .hero-cards{display:block; width:100%; max-width:1060px; height:auto; margin:22px auto 0}
   .cards-shot{display:block; width:100%; height:auto; max-width:620px; margin:0 auto}
@@ -185,7 +186,7 @@
   <div class="wrap bar">
     <a class="brand" href="#top">
       <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span>
-      Goals
+      <span>Goals</span>
     </a>
     <a class="back" href="../" data-i18n="nav.back">← LibraryCompass</a>
 
