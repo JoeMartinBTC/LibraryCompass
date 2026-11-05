@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Goals — deine Ziele als Karten über allem auf dem Mac</title>
-<meta name="description" content="Goals legt deine Ziele im eingestellten Takt als Karten über alles, was auf dem Mac gerade läuft. Nach ein paar Sekunden verschwinden sie von selbst, dein Programm behält den Fokus. Privates Hobbyprojekt, quelloffen unter MIT.">
+<title>Goals — Zielanzeigen über allem auf dem Mac</title>
+<meta name="description" content="Die Goal-App legt deine Ziele im eingestellten Takt als Zielanzeigen über alles, was auf dem Mac gerade läuft. Nach ein paar Sekunden verschwinden die Zielanzeigen von selbst, dein Programm behält den Fokus. Privates Hobbyprojekt, quelloffen unter MIT.">
 <meta name="color-scheme" content="dark light">
 <link rel="canonical" href="https://librarycompass.com/goals/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237B3BE8'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='9' fill='none' stroke='%23fff' stroke-width='5'/%3E%3C/svg%3E">
@@ -168,7 +168,8 @@
   /* ---- Ergänzungen Goals ---- */
   section.wrap{padding:78px 26px}   /* .wrap allein nähme den Abschnitten den Abstand nach oben und unten */
   .wrap.hero{padding:74px 26px 0}
-  .hero-cards{display:block; width:100%; max-width:1060px; height:auto; margin:40px auto 0}
+  .shots-title{margin:56px 0 0}
+  .hero-cards{display:block; width:100%; max-width:1060px; height:auto; margin:22px auto 0}
   .cards-shot{display:block; width:100%; height:auto; max-width:620px; margin:0 auto}
   .window{max-width:860px; margin:44px auto 0}
   .prose{max-width:680px; margin:0 auto}
@@ -211,7 +212,7 @@
   <div class="wrap hero">
     <span class="pill"><i></i><span data-i18n="hero.pill">Hobbyprojekt · quelloffen · macOS</span></span>
     <h1 data-i18n="hero.h1">Deine Ziele,<br>über allem.</h1>
-    <p class="lede" data-i18n="hero.lede">Goals legt deine Ziele im eingestellten Takt als Karten über alles, was gerade auf dem Bildschirm läuft. Nach ein paar Sekunden verschwinden sie von selbst, und dein aktives Programm behält die ganze Zeit den Fokus.</p>
+    <p class="lede" data-i18n="hero.lede">Die Goal-App legt deine Ziele im eingestellten Takt als Zielanzeigen über alles, was gerade auf dem Bildschirm läuft. Nach ein paar Sekunden verschwinden die Zielanzeigen von selbst, und dein aktives Programm behält die ganze Zeit den Fokus.</p>
     <div class="cta">
       <a class="btn btn-primary" href="https://github.com/JoeMartinBTC/goals" rel="noopener">
         <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
@@ -221,12 +222,13 @@
     </div>
     <p class="req" data-i18n="hero.req">macOS 14 oder neuer · MIT-Lizenz</p>
 
+    <h2 class="shots-title" data-i18n="hero.shots">So werden deine Ziele auf deinem Desktop angezeigt.</h2>
     <picture>
       <source media="(max-width:700px)" data-shot="karten-{scheme}" srcset="img/karten-polarlicht-de.webp" width="1300" height="910">
       <img class="hero-cards" data-shot="hero-{scheme}" src="img/hero-polarlicht-de.webp" width="2000" height="663" loading="eager"
-           data-alt-de="Sechs Goal-Karten mit einem Verlauf über alle Karten, von Lebenswerk bis zum Anruf bei einem alten Freund"
-           data-alt-en="Six goal cards with one gradient across all of them, from life’s work to calling an old friend"
-           alt="Sechs Goal-Karten mit einem Verlauf über alle Karten, von Lebenswerk bis zum Anruf bei einem alten Freund">
+           data-alt-de="Sechs Zielanzeigen mit einem gemeinsamen Verlauf, von Lebenswerk bis zum Anruf bei einem alten Freund"
+           data-alt-en="Six goal displays with one shared gradient, from life’s work to calling an old friend"
+           alt="Sechs Zielanzeigen mit einem gemeinsamen Verlauf, von Lebenswerk bis zum Anruf bei einem alten Freund">
     </picture>
   </div>
 
@@ -237,7 +239,7 @@
       <h2 data-i18n="why.h2">Was du nicht siehst, vergisst du.</h2>
 
       <h3 data-i18n="why.h1">Warum Ziele wichtig sind</h3>
-      <p data-i18n="why.p1">Ein Ziel nimmt dir Entscheidungen ab. Wenn du weißt, wohin du willst, musst du nicht jeden Abend neu abwägen, ob die Überstunde, das Training oder der Anruf gerade vorgeht. Aus vielen kleinen Fragen wird eine: Bringt mich das näher ran? Ziele geben dem Tag auch ein Maß, denn erst an ihnen merkst du, ob eine Woche dich weitergebracht hat oder nur voll war. Und sie tragen dich durch die zähen Strecken. Für etwas, das dir wirklich etwas bedeutet, nimmst du Mühe leichter in Kauf.</p>
+      <p data-i18n="why.p1">Ein Ziel nimmt dir Entscheidungen ab. Wenn du weißt, wohin du willst, musst du nicht jeden Abend neu abwägen, ob die Überstunde, das Training oder der Anruf gerade vorgeht. Aus vielen kleinen Fragen wird eine: Bringt mich das näher ran? Ziele geben dem Tag auch ein Maß, denn erst an ihnen merkst du, ob eine Woche dich weitergebracht hat oder nur voll war. Und Ziele tragen dich durch die zähen Strecken. Für etwas, das dir wirklich etwas bedeutet, nimmst du Mühe leichter in Kauf.</p>
 
       <h3 data-i18n="why.h2b">Wie man Ziele aus den Augen verliert</h3>
       <p data-i18n="why.p2">Kaum jemand streicht ein Ziel bewusst. Es rutscht nach unten. Im Januar steht es groß auf dem Zettel, im März liegt der Zettel unter der Steuer, und im Herbst fällt dir beim Aufräumen wieder ein, was du dir vorgenommen hattest. Dringendes schlägt Wichtiges, jeden Tag aufs Neue: Die Mail will jetzt eine Antwort, das Spanischbuch wartet geduldig. Auch dein Kalender hilft wenig, denn er kennt nur Termine, und ein Ziel hat meistens keinen. Deshalb meldet es sich nie von selbst.</p>
@@ -247,47 +249,47 @@
 
       <div class="note">
         <strong data-i18n="why.noteT">Ein privates Hobbyprojekt, genau wie LibraryCompass.</strong>
-        <span data-i18n="why.noteB"> Kein Produkt, kein Geschäftsmodell, kein Support-Versprechen. Die App hat keine Netzwerkfunktion: Deine Ziele bleiben in einer Datei auf deinem Mac.</span>
+        <span data-i18n="why.noteB"> Kein Produkt, kein Geschäftsmodell, kein Support-Versprechen. Die Goal-App hat keine Netzwerkfunktion: Deine Ziele bleiben in einer Datei auf deinem Mac.</span>
       </div>
     </div>
   </section>
 
   <!-- FUNKTIONEN -->
   <section class="wrap">
-    <p class="eyebrow" data-i18n="feat.eyebrow">Was sie kann</p>
-    <h2 data-i18n="feat.h2">Sechs Dinge, die sie macht.</h2>
-    <p class="sub" data-i18n="feat.sub">Goals ändert daran nur eine Kleinigkeit: Deine Ziele tauchen im Lauf des Tages wieder auf, ein paar Sekunden lang, mitten in der Arbeit. Was du daraus machst, bleibt deine Sache.</p>
+    <p class="eyebrow" data-i18n="feat.eyebrow">Was die Goal-App kann</p>
+    <h2 data-i18n="feat.h2">Sechs Funktionen der Goal-App.</h2>
+    <p class="sub" data-i18n="feat.sub">Die Goal-App ändert daran nur eine Kleinigkeit: Deine Ziele tauchen im Lauf des Tages wieder auf, ein paar Sekunden lang, mitten in der Arbeit. Was du daraus machst, bleibt deine Sache.</p>
 
     <div class="cards">
       <div class="card">
         <div class="tile t1"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
         <h3 data-i18n="f1.h">Über allem, ohne zu stören</h3>
-        <p data-i18n="f1.p">Die Karten liegen über allen Fenstern, auch über Programmen im Vollbild. Dein aktives Programm behält den Fokus, du tippst einfach weiter.</p>
+        <p data-i18n="f1.p">Die Zielanzeigen liegen über allen Fenstern, auch über Programmen im Vollbild. Dein aktives Programm behält den Fokus, du tippst einfach weiter.</p>
       </div>
       <div class="card">
         <div class="tile t5"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></div>
-        <h3 data-i18n="f2.h">Karten im Raster</h3>
-        <p data-i18n="f2.p">Jede Karte hat Überschrift, Unterzeile und Erklärung und lässt sich einzeln ein- und ausschalten. Mehrere stehen gemeinsam im Raster, in vier Größen von 360 bis 900 Punkten.</p>
+        <h3 data-i18n="f2.h">Zielanzeigen im Raster</h3>
+        <p data-i18n="f2.p">Jede Zielanzeige hat Überschrift, Unterzeile und Erklärung und lässt sich einzeln ein- und ausschalten. Mehrere stehen gemeinsam im Raster, in vier Größen von 360 bis 900 Punkten.</p>
       </div>
       <div class="card">
         <div class="tile t2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></div>
         <h3 data-i18n="f3.h">Dein Takt</h3>
-        <p data-i18n="f3.p">Alle 1, 15 oder 30 Minuten, alle 1, 2 oder 4 Stunden oder ein eigener Wert bis 24 Stunden. Er zählt ab dem Verschwinden der Karten und streut auf Wunsch um ± 20 %.</p>
+        <p data-i18n="f3.p">Alle 1, 15 oder 30 Minuten, alle 1, 2 oder 4 Stunden oder ein eigener Wert bis 24 Stunden. Er zählt ab dem Verschwinden der Zielanzeigen und streut auf Wunsch um ± 20 %.</p>
       </div>
       <div class="card">
         <div class="tile t3"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
         <h3 data-i18n="f4.h">Kurz da, dann weg</h3>
-        <p data-i18n="f4.p">Nach 5, 10, 15 oder 30 Sekunden verschwinden die Karten von selbst. Wenn du früher fertig bist, klickst du auf das X oder auf „Alle schließen“.</p>
+        <p data-i18n="f4.p">Nach 5, 10, 15 oder 30 Sekunden verschwinden die Zielanzeigen von selbst. Wenn du früher fertig bist, klickst du auf das X oder auf „Alle schließen“.</p>
       </div>
       <div class="card">
         <div class="tile t6"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="#fff" stroke="none"/></svg></div>
         <h3 data-i18n="f5.h">Farben nach Geschmack</h3>
-        <p data-i18n="f5.p">Einfarbig in Bitcoin-Orange, zwölf Schemen mit Verläufen oder eigene Farben je Karte. Im Menü wechselst du sie mit einem Klick.</p>
+        <p data-i18n="f5.p">Einfarbig in Bitcoin-Orange, zwölf Schemen mit Verläufen oder eigene Farben je Zielanzeige. Im Menü wechselst du die Farben mit einem Klick.</p>
       </div>
       <div class="card">
         <div class="tile t4"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg></div>
         <h3 data-i18n="f6.h">Eine lesbare Datei</h3>
-        <p data-i18n="f6.p">Deine Karten liegen als JSON auf deinem Mac. Änderungen von außen wirken sofort, und eine kaputte Datei bleibt unangetastet, bis du sie reparierst.</p>
+        <p data-i18n="f6.p">Deine Zielanzeigen liegen als JSON auf deinem Mac. Änderungen von außen wirken sofort, und eine kaputte Datei bleibt unangetastet, bis du die Datei reparierst.</p>
       </div>
     </div>
   </section>
@@ -296,33 +298,33 @@
   <section class="wrap">
     <p class="eyebrow" data-i18n="shots.eyebrow">Ansichten</p>
     <h2 data-i18n="shots.h2">Von groß bis klein.</h2>
-    <p class="sub" data-i18n="shots.sub">Die sechs Ziele auf den Bildern laufen vom Lebenswerk bis zum Anruf, den du heute erledigen kannst. Sie sind Beispiele. Deine eigenen schreibst du in die App oder direkt in die Datei.</p>
+    <p class="sub" data-i18n="shots.sub">Die sechs Ziele auf den Bildern laufen vom Lebenswerk bis zum Anruf, den du heute erledigen kannst. Das sind Beispiele. Deine eigenen schreibst du in die Goal-App oder direkt in die Datei.</p>
 
     <div class="gallery">
       <div class="g-row">
         <div class="g-txt">
-          <h3 data-i18n="g1.h">Ein Verlauf je Karte</h3>
-          <p data-i18n="g1.p">Acht Schemen geben jeder Karte einen eigenen Verlauf: Metall, Signal, Pastell, Nacht, Fest, Minze, Himmel und Glut. Hier zu sehen ist Fest.</p>
+          <h3 data-i18n="g1.h">Ein Verlauf je Zielanzeige</h3>
+          <p data-i18n="g1.p">Acht Schemen geben jeder Zielanzeige einen eigenen Verlauf: Metall, Signal, Pastell, Nacht, Fest, Minze, Himmel und Glut. Hier zu sehen ist Fest.</p>
         </div>
         <img class="cards-shot" data-shot="karten-fest" src="img/karten-fest-de.webp" width="1300" height="910" loading="lazy"
-             data-alt-de="Die sechs Ziele im Schema Fest, jede Karte mit eigenem Pastellverlauf"
-             data-alt-en="The six goals in the Fest scheme, each card with its own pastel gradient"
-             alt="Die sechs Ziele im Schema Fest, jede Karte mit eigenem Pastellverlauf">
+             data-alt-de="Die sechs Ziele im Schema Fest, jede Zielanzeige mit eigenem Pastellverlauf"
+             data-alt-en="The six goals in the Fest scheme, each goal display with its own pastel gradient"
+             alt="Die sechs Ziele im Schema Fest, jede Zielanzeige mit eigenem Pastellverlauf">
       </div>
       <div class="g-row flip">
         <div class="g-txt">
-          <h3 data-i18n="g2.h">Ein Verlauf über alle Karten</h3>
-          <p data-i18n="g2.p">Vier Schemen legen einen einzigen Verlauf über die ganze Fläche: Morgenrot, Lagune, Polarlicht und Abendrot. Jede Karte zeigt ihren Ausschnitt, die Lücken bleiben durchsichtig. Hier zu sehen ist Abendrot.</p>
+          <h3 data-i18n="g2.h">Ein Verlauf über alle Zielanzeigen</h3>
+          <p data-i18n="g2.p">Vier Schemen legen einen einzigen Verlauf über die ganze Fläche: Morgenrot, Lagune, Polarlicht und Abendrot. Jede Zielanzeige zeigt ihren Ausschnitt, die Lücken bleiben durchsichtig. Hier zu sehen ist Abendrot.</p>
         </div>
         <img class="cards-shot" data-shot="karten-abendrot" src="img/karten-abendrot-de.webp" width="1300" height="910" loading="lazy"
-             data-alt-de="Die sechs Ziele im Schema Abendrot, ein Verlauf von Violett nach Rot über alle Karten"
-             data-alt-en="The six goals in the Abendrot scheme, one gradient from violet to red across all cards"
-             alt="Die sechs Ziele im Schema Abendrot, ein Verlauf von Violett nach Rot über alle Karten">
+             data-alt-de="Die sechs Ziele im Schema Abendrot, ein Verlauf von Violett nach Rot über alle Zielanzeigen"
+             data-alt-en="The six goals in the Abendrot scheme, one gradient from violet to red across all goal displays"
+             alt="Die sechs Ziele im Schema Abendrot, ein Verlauf von Violett nach Rot über alle Zielanzeigen">
       </div>
       <div class="g-row">
         <div class="g-txt">
           <h3 data-i18n="g3.h">Einfarbig</h3>
-          <p data-i18n="g3.p">Bitcoin-Orange auf Dunkel, wie bei der <a href="/bitcoin-uhr/">Bitcoin-Uhr</a>. Das ist die Einstellung ab Werk. Außerdem kannst du je Karte eigene Farben wählen.</p>
+          <p data-i18n="g3.p">Bitcoin-Orange auf Dunkel, wie bei der <a href="/bitcoin-uhr/">Bitcoin-Uhr</a>. Das ist die Einstellung ab Werk. Außerdem kannst du je Zielanzeige eigene Farben wählen.</p>
         </div>
         <img class="cards-shot" data-shot="karten-einfarbig" src="img/karten-einfarbig-de.webp" width="1300" height="910" loading="lazy"
              data-alt-de="Die sechs Ziele einfarbig in Bitcoin-Orange auf dunklem Grund"
@@ -336,14 +338,14 @@
   <section class="wrap" id="bedienung">
     <p class="eyebrow" data-i18n="use.eyebrow">Bedienung</p>
     <h2 data-i18n="use.h2">Ein Menü, drei Wege dorthin.</h2>
-    <p class="sub" data-i18n="use.sub">Das Symbol in der Menüleiste, der Rechtsklick auf das Dock-Symbol und der Rechtsklick auf eine Karte öffnen dasselbe Menü. Ein einfacher Klick auf das Dock-Symbol öffnet das Einstellungsfenster.</p>
+    <p class="sub" data-i18n="use.sub">Das Symbol in der Menüleiste, der Rechtsklick auf das Dock-Symbol und der Rechtsklick auf eine Zielanzeige öffnen dasselbe Menü. Ein einfacher Klick auf das Dock-Symbol öffnet das Einstellungsfenster.</p>
 
     <div class="menu-wrap">
-      <div class="menu" role="img" aria-label="Das Menü von Goals">
+      <div class="menu" role="img" aria-label="Das Menü der Goal-App">
         <div><span data-i18n="m.now">Jetzt zeigen</span><small></small></div>
         <div class="off"><span data-i18n="m.status">Nächste Erinnerung in 12 Min.</span><small></small></div>
         <hr>
-        <div><span data-i18n="m.cards">Karten</span><small>›</small></div>
+        <div><span data-i18n="m.cards">Zielanzeigen</span><small>›</small></div>
         <div><span data-i18n="m.size">Größe</span><small>›</small></div>
         <div><span data-i18n="m.display">Anzeigedauer</span><small>›</small></div>
         <div><span data-i18n="m.interval">Takt</span><small>›</small></div>
@@ -357,9 +359,9 @@
         <div><span data-i18n="m.quit">Goals beenden</span><small></small></div>
       </div>
       <div class="menu-notes">
-        <p><strong data-i18n="mn.cardsH">Karten.</strong> <span data-i18n="mn.cards">Hier schaltest du jede Karte einzeln ein und aus, ohne das Einstellungsfenster zu öffnen.</span></p>
+        <p><strong data-i18n="mn.cardsH">Zielanzeigen.</strong> <span data-i18n="mn.cards">Hier schaltest du jede Zielanzeige einzeln ein und aus, ohne das Einstellungsfenster zu öffnen.</span></p>
         <p><strong data-i18n="mn.intervalH">Takt.</strong> <span data-i18n="mn.interval">Die Stufen von 1 Minute bis 4 Stunden stehen direkt im Menü. Darüber steht, wann die nächste Erinnerung kommt.</span></p>
-        <p><strong data-i18n="mn.placeH">Ort.</strong> <span data-i18n="mn.place">Die Karten erscheinen in der Mitte des Hauptbildschirms. Ziehst du sie woandershin, merkt sich die App die Position.</span></p>
+        <p><strong data-i18n="mn.placeH">Ort.</strong> <span data-i18n="mn.place">Die Zielanzeigen erscheinen in der Mitte des Hauptbildschirms. Ziehst du die Zielanzeigen woandershin, merkt sich die Goal-App die Position.</span></p>
         <p><strong data-i18n="mn.quietH">Ruhe.</strong> <span data-i18n="mn.quiet">Bei gesperrtem Bildschirm, Bildschirmschoner und im Ruhezustand erscheint nichts. Ein fälliger Termin folgt beim Entsperren.</span></p>
         <p><strong data-i18n="mn.recH">Aufzeichnung.</strong> <span data-i18n="mn.rec">Das Fenster verlangt von macOS, nicht in Bildschirmfreigaben und Aufnahmen zu erscheinen. Verlass dich nicht darauf: In den Apple Developer Forums wird berichtet, dass QuickTime solche Fenster trotzdem erfasst.</span></p>
       </div>
@@ -367,10 +369,10 @@
 
     <figure class="window">
       <img class="shot" data-theme-shot src="img/einstellungen-dunkel.webp" width="1500" height="1160" loading="lazy"
-           data-alt-de="Das Einstellungsfenster: links die Liste der sechs Ziele, rechts die Felder und eine Vorschau der Karte"
-           data-alt-en="The settings window: the list of six goals on the left, fields and a card preview on the right"
-           alt="Das Einstellungsfenster: links die Liste der sechs Ziele, rechts die Felder und eine Vorschau der Karte">
-      <figcaption data-i18n="use.cap">Das Einstellungsfenster: links die Liste, rechts die Felder und eine Vorschau. Die Oberfläche der App ist deutsch.</figcaption>
+           data-alt-de="Das Einstellungsfenster: links die Liste der sechs Ziele, rechts die Felder und eine Vorschau der Zielanzeige"
+           data-alt-en="The settings window: the list of six goals on the left, fields and a goal display preview on the right"
+           alt="Das Einstellungsfenster: links die Liste der sechs Ziele, rechts die Felder und eine Vorschau der Zielanzeige">
+      <figcaption data-i18n="use.cap">Das Einstellungsfenster: links die Liste, rechts die Felder und eine Vorschau. Die Oberfläche der Goal-App ist deutsch.</figcaption>
     </figure>
   </section>
 
@@ -378,7 +380,7 @@
   <section class="wrap" id="build">
     <p class="eyebrow" data-i18n="build.eyebrow">Installation</p>
     <h2 data-i18n="build.h2">Selbst bauen, in einem Befehl.</h2>
-    <p class="sub" data-i18n="build.sub">Wie bei LibraryCompass gibt es bewusst keine fertige Programmdatei: ohne bezahltes Apple-Entwicklerprogramm ließe sie sich nicht notarisieren. Der Quellcode ist vollständig. Das Skript baut die App, signiert sie ad hoc, installiert sie nach „Programme“ und startet sie. Du brauchst macOS 14 oder neuer und Xcode.</p>
+    <p class="sub" data-i18n="build.sub">Wie bei LibraryCompass gibt es bewusst keine fertige Programmdatei: ohne bezahltes Apple-Entwicklerprogramm ließe sich keine notarisieren. Der Quellcode ist vollständig. Das Skript baut die Goal-App, signiert ad hoc, installiert nach „Programme“ und startet die Goal-App. Du brauchst macOS 14 oder neuer und Xcode.</p>
 <pre><code><span class="c"># <span data-i18n="build.c1">Quellcode holen, bauen, installieren, starten</span></span>
 <span class="k">git</span> clone https://github.com/JoeMartinBTC/goals.git
 <span class="k">cd</span> goals
@@ -388,15 +390,15 @@
   <!-- MITMACHEN -->
   <section class="wrap" id="mitmachen">
     <p class="eyebrow" data-i18n="join.eyebrow">Mitmachen</p>
-    <h2 data-i18n="join.h2">Baut sie weiter.</h2>
-    <p class="sub" data-i18n="join.sub">Goals ist ein Anfang, kein fertiges Produkt. Wer eine Idee hat, soll sie bauen: Repository forken, ausprobieren, einen Pull Request schicken. Auch ein Issue mit einer guten Idee ist ein Beitrag. Der Code ist klein und nutzt nur Apple-Frameworks.</p>
+    <h2 data-i18n="join.h2">Baut die Goal-App weiter.</h2>
+    <p class="sub" data-i18n="join.sub">Die Goal-App ist ein Anfang, kein fertiges Produkt. Wer eine Idee hat, kann loslegen: Repository forken, ausprobieren, einen Pull Request schicken. Auch ein Issue mit einer guten Idee ist ein Beitrag. Der Code ist klein und nutzt nur Apple-Frameworks.</p>
     <ul class="ideas">
-      <li data-i18n="i1">Ein Link auf jeder Karte, der das passende Dokument öffnet</li>
-      <li data-i18n="i2">Eine Frist je Karte</li>
-      <li data-i18n="i3">Ein Schalter „Heute erledigt“, der die Karte bis morgen ruhen lässt</li>
+      <li data-i18n="i1">Ein Link auf jeder Zielanzeige, der das passende Dokument öffnet</li>
+      <li data-i18n="i2">Eine Frist je Zielanzeige</li>
+      <li data-i18n="i3">Ein Schalter „Heute erledigt“, der die Zielanzeige bis morgen ruhen lässt</li>
       <li data-i18n="i4">Ruhezeiten, etwa nachts oder während eines Termins</li>
       <li data-i18n="i5">Eine englische Oberfläche und weitere Sprachen</li>
-      <li data-i18n="i6">Eine eigene Anordnung der Karten statt des Rasters</li>
+      <li data-i18n="i6">Eine eigene Anordnung der Zielanzeigen statt des Rasters</li>
     </ul>
     <div class="cta" style="justify-content:flex-start">
       <a class="btn btn-primary" href="https://github.com/JoeMartinBTC/goals/fork" rel="noopener"><span data-i18n="join.b1">Repository forken</span></a>
@@ -421,7 +423,7 @@
       <p><a href="/" data-i18n="proj.lc">LibraryCompass</a> — <span data-i18n="proj.lcd">die eigene Bücherwand katalogisieren</span></p>
       <p><a href="/bitcoin-uhr/" data-i18n="proj.bu">Bitcoin-Uhr</a> — <span data-i18n="proj.bud">Schreibtischuhr in Bitcoin-Orange</span></p>
       <p><a href="/bitcoin-pointcloud/" data-i18n="proj.pc">Bitcoin-Punktwolke</a> — <span data-i18n="proj.pcd">Text als Relief aus Tintenpunkten</span></p>
-      <p><a href="/goals/" aria-current="page" style="color:var(--text);font-weight:560" data-i18n="proj.gl">Goals</a> — <span data-i18n="proj.gld">deine Ziele als Karten über allem</span></p>
+      <p><a href="/goals/" aria-current="page" style="color:var(--text);font-weight:560" data-i18n="proj.gl">Goals</a> — <span data-i18n="proj.gld">Zielanzeigen über allem auf dem Mac</span></p>
     </div>
   </div>
 </footer>
@@ -436,7 +438,8 @@
       "nav.gh": "Source",
       "hero.pill": "Hobby project · open source · macOS",
       "hero.h1": "Your goals,<br>above everything.",
-      "hero.lede": "Goals lays your goals over whatever is on screen, as cards, at the pace you set. After a few seconds they disappear on their own, and your active app keeps the focus the whole time.",
+      "hero.lede": "The Goal app lays your goals over whatever is on screen, as goal displays, at the pace you set. After a few seconds the goal displays disappear on their own, and your active app keeps the focus the whole time.",
+      "hero.shots": "This is how your goals appear on your desktop.",
       "hero.cta1": "View on GitHub",
       "hero.cta2": "Why bother",
       "hero.req": "macOS 14 or later · MIT licence",
@@ -444,46 +447,46 @@
       "why.eyebrow": "Why bother",
       "why.h2": "Out of sight, out of mind.",
       "why.h1": "Why goals matter",
-      "why.p1": "A goal makes decisions for you. When you know where you want to go, you do not have to weigh up every evening whether the overtime, the workout or the phone call comes first. Many small questions turn into one: does this get me closer? Goals also give the day a yardstick, because only against them can you tell whether a week moved you forward or was merely full. And they carry you through the tough stretches. You put up with effort more easily for something that really matters to you.",
+      "why.p1": "A goal makes decisions for you. When you know where you want to go, you do not have to weigh up every evening whether the overtime, the workout or the phone call comes first. Many small questions turn into one: does this get me closer? Goals also give the day a yardstick, because only against them can you tell whether a week moved you forward or was merely full. And goals carry you through the tough stretches. You put up with effort more easily for something that really matters to you.",
       "why.h2b": "How goals slip out of sight",
       "why.p2": "Hardly anyone crosses out a goal on purpose. It slips down the list. In January it stands large on the note, by March the note lies under the tax papers, and in autumn, while tidying up, you remember what you had set out to do. The urgent beats the important, day after day: the email wants an answer now, the Spanish book waits patiently. Your calendar is little help, since it only knows appointments and a goal usually has none. So it never speaks up on its own.",
       "why.h3": "What happens without goals",
       "why.p3": "Your day stays full anyway. Others then decide what goes into it: your boss, your inbox, your feed, your family’s expectations. For a long time that does not even feel bad, because you are busy. One day you ask yourself where the last five years went and find no answer you like. That need not be terrible. But then your life has happened to you more than you have chosen it.",
       "why.noteT": "A private hobby project, just like LibraryCompass.",
-      "why.noteB": " No product, no business model, no promise of support. The app has no network features: your goals stay in a file on your Mac.",
+      "why.noteB": " No product, no business model, no promise of support. The Goal app has no network features: your goals stay in a file on your Mac.",
 
-      "feat.eyebrow": "What it does",
-      "feat.h2": "Six things it does.",
-      "feat.sub": "Goals changes one small thing about all that: your goals come back during the day, for a few seconds, in the middle of your work. What you make of it is up to you.",
+      "feat.eyebrow": "What the Goal app does",
+      "feat.h2": "Six features of the Goal app.",
+      "feat.sub": "The Goal app changes one small thing about all that: your goals come back during the day, for a few seconds, in the middle of your work. What you make of it is up to you.",
       "f1.h": "Above everything, without getting in the way",
-      "f1.p": "The cards sit above all windows, including full-screen apps. Your active app keeps the focus, so you just keep typing.",
-      "f2.h": "Cards in a grid",
-      "f2.p": "Each card has a heading, a subheading and an explanation, and can be switched on and off by itself. Several share one grid, in four sizes from 360 to 900 points.",
+      "f1.p": "The goal displays sit above all windows, including full-screen apps. Your active app keeps the focus, so you just keep typing.",
+      "f2.h": "Goal displays in a grid",
+      "f2.p": "Each goal display has a heading, a subheading and an explanation, and can be switched on and off by itself. Several share one grid, in four sizes from 360 to 900 points.",
       "f3.h": "Your pace",
-      "f3.p": "Every 1, 15 or 30 minutes, every 1, 2 or 4 hours, or a value of your own up to 24 hours. It counts from the moment the cards disappear and can vary by ± 20 % if you like.",
+      "f3.p": "Every 1, 15 or 30 minutes, every 1, 2 or 4 hours, or a value of your own up to 24 hours. The pace counts from the moment the goal displays disappear and can vary by ± 20 % if you like.",
       "f4.h": "Briefly there, then gone",
-      "f4.p": "After 5, 10, 15 or 30 seconds the cards disappear on their own. If you are done sooner, click the X or “Alle schließen” (close all).",
+      "f4.p": "After 5, 10, 15 or 30 seconds the goal displays disappear on their own. If you are done sooner, click the X or “Alle schließen” (close all).",
       "f5.h": "Colours to taste",
-      "f5.p": "Plain Bitcoin orange, twelve gradient schemes, or your own colours per card. One click in the menu switches between them.",
+      "f5.p": "Plain Bitcoin orange, twelve gradient schemes, or your own colours per goal display. One click in the menu switches between them.",
       "f6.h": "A readable file",
-      "f6.p": "Your cards live as JSON on your Mac. Changes from outside apply at once, and a broken file stays untouched until you repair it.",
+      "f6.p": "Your goal displays live as JSON on your Mac. Changes from outside apply at once, and a broken file stays untouched until you repair the file.",
 
       "shots.eyebrow": "Views",
       "shots.h2": "From big to small.",
-      "shots.sub": "The six goals in the pictures run from your life’s work to the call you can make today. They are examples. You write your own in the app or straight into the file.",
-      "g1.h": "One gradient per card",
-      "g1.p": "Eight schemes give each card a gradient of its own: Metall, Signal, Pastell, Nacht, Fest, Minze, Himmel and Glut. Shown here: Fest.",
-      "g2.h": "One gradient across all cards",
-      "g2.p": "Four schemes lay a single gradient over the whole area: Morgenrot, Lagune, Polarlicht and Abendrot. Each card shows its section, and the gaps stay transparent. Shown here: Abendrot.",
+      "shots.sub": "The six goals in the pictures run from your life’s work to the call you can make today. These are examples. You write your own in the Goal app or straight into the file.",
+      "g1.h": "One gradient per goal display",
+      "g1.p": "Eight schemes give each goal display a gradient of its own: Metall, Signal, Pastell, Nacht, Fest, Minze, Himmel and Glut. Shown here: Fest.",
+      "g2.h": "One gradient across all goal displays",
+      "g2.p": "Four schemes lay a single gradient over the whole area: Morgenrot, Lagune, Polarlicht and Abendrot. Each goal display shows its section, and the gaps stay transparent. Shown here: Abendrot.",
       "g3.h": "Plain",
-      "g3.p": "Bitcoin orange on dark, like the <a href=\"/bitcoin-uhr/\">Bitcoin Clock</a>. This is the factory setting. You can also pick your own colours per card.",
+      "g3.p": "Bitcoin orange on dark, like the <a href=\"/bitcoin-uhr/\">Bitcoin Clock</a>. This is the factory setting. You can also pick your own colours per goal display.",
 
-      "use.eyebrow": "How to use it",
+      "use.eyebrow": "How to use the Goal app",
       "use.h2": "One menu, three ways there.",
-      "use.sub": "The menu bar icon, a right-click on the Dock icon and a right-click on a card all open the same menu. A plain click on the Dock icon opens the settings window.",
+      "use.sub": "The menu bar icon, a right-click on the Dock icon and a right-click on a goal display all open the same menu. A plain click on the Dock icon opens the settings window.",
       "m.now": "Show now",
       "m.status": "Next reminder in 12 min.",
-      "m.cards": "Cards",
+      "m.cards": "Goal displays",
       "m.size": "Size",
       "m.display": "Display time",
       "m.interval": "Pace",
@@ -493,32 +496,32 @@
       "m.settings": "Settings …",
       "m.login": "Start at login",
       "m.quit": "Quit Goals",
-      "mn.cardsH": "Cards.",
-      "mn.cards": "Switch each card on and off here, without opening the settings window.",
+      "mn.cardsH": "Goal displays.",
+      "mn.cards": "Switch each goal display on and off here, without opening the settings window.",
       "mn.intervalH": "Pace.",
       "mn.interval": "The steps from 1 minute to 4 hours are right in the menu. Above them it says when the next reminder is due.",
       "mn.placeH": "Place.",
-      "mn.place": "The cards appear in the middle of the main screen. Drag them elsewhere and the app remembers the position.",
+      "mn.place": "The goal displays appear in the middle of the main screen. Drag the goal displays elsewhere and the Goal app remembers the position.",
       "mn.quietH": "Quiet.",
       "mn.quiet": "Nothing appears on a locked screen, during the screen saver or in sleep. A reminder that falls due follows on unlocking.",
       "mn.recH": "Recording.",
       "mn.rec": "The window asks macOS to stay out of screen sharing and recordings. Do not rely on it: reports in the Apple Developer Forums say QuickTime captures such windows anyway.",
-      "use.cap": "The settings window: the list on the left, fields and a preview on the right. The app’s interface is in German.",
+      "use.cap": "The settings window: the list on the left, fields and a preview on the right. The Goal app’s interface is in German.",
 
       "build.eyebrow": "Installation",
-      "build.h2": "Build it yourself, in one command.",
-      "build.sub": "As with LibraryCompass there is deliberately no ready-made download: without a paid Apple developer programme it could not be notarised. The source is complete. The script builds the app, signs it ad hoc, installs it into Applications and launches it. You need macOS 14 or later and Xcode.",
+      "build.h2": "Build the Goal app yourself, in one command.",
+      "build.sub": "As with LibraryCompass there is deliberately no ready-made download: without a paid Apple developer programme a download could not be notarised. The source is complete. The script builds the Goal app, signs ad hoc, installs into Applications and launches the Goal app. You need macOS 14 or later and Xcode.",
       "build.c1": "get the source, build, install, launch",
 
       "join.eyebrow": "Contribute",
-      "join.h2": "Keep building it.",
-      "join.sub": "Goals is a start, not a finished product. If you have an idea, build it: fork the repository, try it out, send a pull request. An issue with a good idea counts too. The code is small and uses Apple frameworks only.",
-      "i1": "A link on each card that opens the matching document",
-      "i2": "A deadline per card",
-      "i3": "A “done for today” switch that rests a card until tomorrow",
+      "join.h2": "Keep building the Goal app.",
+      "join.sub": "The Goal app is a start, not a finished product. If you have an idea, go ahead: fork the repository, try your change, send a pull request. An issue with a good idea counts too. The code is small and uses Apple frameworks only.",
+      "i1": "A link on each goal display that opens the matching document",
+      "i2": "A deadline per goal display",
+      "i3": "A “done for today” switch that rests a goal display until tomorrow",
       "i4": "Quiet hours, say at night or during a meeting",
       "i5": "An English interface and more languages",
-      "i6": "Your own arrangement of the cards instead of the grid",
+      "i6": "Your own arrangement of the goal displays instead of the grid",
       "join.b1": "Fork the repository",
       "join.b2": "Suggest an idea or report a bug",
 
@@ -534,13 +537,13 @@
       "proj.pc": "Bitcoin Point Cloud",
       "proj.pcd": "text as a relief of ink specks",
       "proj.gl": "Goals",
-      "proj.gld": "your goals as cards above everything"
+      "proj.gld": "goal displays above everything on the Mac"
     }
   };
 
   var TITLES = {
-    de: "Goals — deine Ziele als Karten über allem auf dem Mac",
-    en: "Goals — your goals as cards above everything on the Mac"
+    de: "Goals — Zielanzeigen über allem auf dem Mac",
+    en: "Goals — goal displays above everything on the Mac"
   };
 
   var nodes = document.querySelectorAll("[data-i18n]");
@@ -549,7 +552,7 @@
 
   var currentLang = "de", currentTheme = "dark";
 
-  /* Die Kartenbilder gibt es je Sprache, das obere Bild und das Fenster passend zum Erscheinungsbild. */
+  /* Die Bilder der Zielanzeigen gibt es je Sprache, das obere Bild und das Fenster passend zum Erscheinungsbild. */
   function applyShots() {
     var scheme = currentTheme === "light" ? "morgenrot" : "polarlicht";
     document.querySelectorAll("[data-shot]").forEach(function (el) {

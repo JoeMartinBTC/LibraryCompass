@@ -69,9 +69,9 @@ it into `demo/` again and raise the `?v=` number so browsers do not keep an old 
 ### Goals (`goals/`)
 
 Images come from the app's snapshot mode, which writes them to the folder `seite/`
-(`Goals --snapshot <dir>`). The six goals on the cards are made-up examples.
+(`Goals --snapshot <dir>`). The six goals on the goal displays are made-up examples.
 
-- Card images have a transparent background and exist per language
+- Images of the goal displays have a transparent background and exist per language
   (`cwebp -q 84 -resize 2000 0` for `hero-*`, `-resize 1300 0` for `karten-*`). The script
   swaps them when the language changes. The hero image also changes with the appearance:
   Polarlicht on dark, Morgenrot on light. Below 700 px it uses the two-column `karten-*`
