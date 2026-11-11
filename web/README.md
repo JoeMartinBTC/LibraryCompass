@@ -88,6 +88,13 @@ Images are strips from the app's still mode, four clocks side by side
 converted with `cwebp -q 86`. Only `bewegungen-*` exists per language; the other strips
 mix languages on purpose. The Bitcoin values in the pictures are fixed examples.
 
+The demo film (`film/vorfuehrung-{de,en}.mp4`, 800×1200, 40 s, about 380 KB each) is
+rendered frame by frame with `Zeigerreiter --film <dir> salbei:schlicht:mensch:<lang>`
+and encoded with H.264 `-crf 28 -preset slow` (VP9 `-crf 36` came out larger: 636 vs
+384 KB). It plays `autoplay muted loop playsinline controls`; the script swaps source and
+poster with the language. The frames have transparent rounded corners, which turn black
+in the video, so the `<video>` gets `border-radius: 7% / 4.667%` to clip them.
+
 ## Screenshots
 
 They show the author's own library, published deliberately. Book covers and titles

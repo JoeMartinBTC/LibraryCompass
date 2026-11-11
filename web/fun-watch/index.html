@@ -184,6 +184,12 @@
   .shot-plain{display:block; width:100%; height:auto; border-radius:18px; box-shadow:var(--shadowShot)}
   .btc-shot{max-width:560px; margin:0 auto}
   .g-txt .eyebrow{margin-bottom:10px}
+  .film-row{display:grid; grid-template-columns:1fr; gap:30px; align-items:center}
+  @media(min-width:900px){ .film-row{grid-template-columns:1fr 340px; gap:56px} }
+  .film-row .g-txt p{color:var(--text2); font-size:15.5px; font-weight:300; margin:0 0 14px}
+  .film-row .g-txt .film-note{font-size:13.5px; color:var(--text3)}
+  .film{display:block; width:100%; max-width:340px; height:auto; margin:0 auto;
+        border-radius:7% / 4.667%; box-shadow:var(--shadowShot); background:transparent}
 </style>
 </head>
 <body>
@@ -237,8 +243,19 @@
   <!-- STUNDE -->
   <section class="wrap" id="stunde">
     <p class="eyebrow" data-i18n="hour.eyebrow">Eine Stunde mit der Figur</p>
-    <h2 data-i18n="hour.h2">Der Zeiger bestimmt, wie es ihr geht.</h2>
-    <p class="sub" data-i18n="hour.sub">Steht der Zeiger oben, balanciert die Figur auf der Spitze. Kippt er nach unten, hängt sie dran und rutscht, bis sie sich um halb gegen ihn stemmen muss. Danach fährt sie gemütlich mit und klettert zur vollen Stunde wieder nach oben. Wenn es ihr schlecht geht, wird der Hintergrund dunkel.</p>
+    <div class="film-row">
+      <div class="g-txt">
+        <h2 data-i18n="hour.h2">Der Zeiger bestimmt, wie es ihr geht.</h2>
+        <p data-i18n="hour.sub">Steht der Zeiger oben, balanciert die Figur auf der Spitze. Kippt er nach unten, hängt sie dran und rutscht, bis sie sich um halb gegen ihn stemmen muss. Danach fährt sie gemütlich mit und klettert zur vollen Stunde wieder nach oben. Wenn es ihr schlecht geht, wird der Hintergrund dunkel.</p>
+        <p class="film-note" data-i18n="hour.film">Der Film zeigt die Vorführung aus dem Menü: eine ganze Stunde in 40 Sekunden. Die zweite Zeile erscheint jeweils eine Minute nach Beginn einer Bewegung.</p>
+      </div>
+      <video class="film" data-lang-video="vorfuehrung" width="800" height="1200"
+             autoplay muted loop playsinline controls preload="metadata"
+             poster="film/poster-de.webp" src="film/vorfuehrung-de.mp4"
+             data-label-de="Vorführung: eine Stunde in 40 Sekunden, die Figur turnt über den Minutenzeiger"
+             data-label-en="Demo: one hour in 40 seconds, the figure tumbles along the minute hand"
+             aria-label="Vorführung: eine Stunde in 40 Sekunden, die Figur turnt über den Minutenzeiger"></video>
+    </div>
     <img class="wide-shot" data-lang-shot="bewegungen" src="img/bewegungen-de.webp" width="1600" height="600" loading="lazy"
          data-alt-de="Vier Momente einer Stunde: balancieren, schwingen, rutschen, klettern, jeweils mit Spruch"
          data-alt-en="Four moments of an hour: balancing, swinging, slipping, climbing, each with a line"
@@ -410,6 +427,7 @@
 
       "hour.eyebrow": "An hour with the figure",
       "hour.h2": "The hand decides how it feels.",
+      "hour.film": "The film shows the demo from the menu: a whole hour in 40 seconds. The second line appears one minute after each movement begins.",
       "hour.sub": "With the hand at the top, the figure balances on its tip. As the hand tips down, it hangs on and slips until, at half past, it has to push against it. Then it rides along comfortably and climbs back to the top for the full hour. When things go badly, the background turns dark.",
       "f1.h": "72 lines per language",
       "f1.p": "Six movements with twelve lines each. Every hour brings a different line per movement, never the same one twice in a row. After a restart the same line is back.",
@@ -508,6 +526,17 @@
     });
     document.querySelectorAll("img[data-alt-de]").forEach(function (img) {
       img.alt = img.getAttribute("data-alt-" + currentLang);
+    });
+    /* Der Film hat je Sprache eigene Sprüche. */
+    document.querySelectorAll("video[data-lang-video]").forEach(function (v) {
+      var base = "film/" + v.getAttribute("data-lang-video") + "-" + currentLang + ".mp4";
+      v.setAttribute("aria-label", v.getAttribute("data-label-" + currentLang));
+      if (v.getAttribute("src") === base) { return; }
+      v.setAttribute("poster", "film/poster-" + currentLang + ".webp");
+      v.setAttribute("src", base);
+      v.load();
+      var p = v.play();
+      if (p && p.catch) { p.catch(function () {}); }
     });
   }
 
