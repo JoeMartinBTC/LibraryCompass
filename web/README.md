@@ -2,7 +2,7 @@
 
 Static pages, live at <https://librarycompass.com>. No build step: what is in this folder
 is what gets served. Besides the LibraryCompass product page the site hosts the pages of
-three other private hobby projects by the same author.
+four other private hobby projects by the same author.
 
 ## Files
 
@@ -14,8 +14,9 @@ three other private hobby projects by the same author.
 | `bitcoin-pointcloud/` | page of the Bitcoin Point Cloud (<https://github.com/JoeMartinBTC/bitcoin-pointcloud>) |
 | `bitcoin-pointcloud/demo/index.html` | unmodified copy of the point cloud's `index.html`, embedded live on its page |
 | `goals/` | page of Goals (<https://github.com/JoeMartinBTC/goals>) |
+| `fun-watch/` | page of Fun Watch (<https://github.com/JoeMartinBTC/fun_watch>) |
 | `robots.txt` | allows AI crawlers explicitly, points at the sitemap |
-| `sitemap.xml` | all four pages; also the input for the server's `gen-llms.py` |
+| `sitemap.xml` | all five pages; also the input for the server's `gen-llms.py` |
 
 **No external dependencies on purpose** — no web fonts, no CDN, no analytics. Nothing
 leaves the visitor's browser, which keeps the page GDPR-uncomplicated and matches the
@@ -34,12 +35,12 @@ the script).
 
 ## Sub-pages and the shared footer
 
-All four pages share one look: the subpages copy the complete `<style>` block of
+All five pages share one look: the subpages copy the complete `<style>` block of
 `index.html` and add a few rules of their own at the end. Language and theme toggles work
 the same way and share the `localStorage` keys `lc-lang` and `lc-theme`.
 
 Every page ends with the same **“Projekte” column** in the footer: LibraryCompass, Bitcoin
-Clock, Bitcoin Point Cloud and Goals, each with a one-line description (`data-i18n="proj.*"`,
+Clock, Bitcoin Point Cloud, Goals and Fun Watch, each with a one-line description (`data-i18n="proj.*"`,
 English strings in the page's script). The current page is marked with
 `aria-current="page"`. **Adding a project means adding it to this block on every page**
 and adding its URL to `sitemap.xml`.
@@ -79,6 +80,13 @@ Images come from the app's snapshot mode, which writes them to the folder `seite
 - The settings window has no background of its own in the snapshot. Put the window colour
   behind it before converting: `magick <in> -background '#26232d' -flatten <out>` for dark,
   `#f2f0f6` for light, then `cwebp -q 84 -resize 1500 0`.
+
+### Fun Watch (`fun-watch/`)
+
+Images are strips from the app's still mode, four clocks side by side
+(`Zeigerreiter --bogen <file.png> HH:mm:pose:colour:dial:figure:language[:k|btc]`),
+converted with `cwebp -q 86`. Only `bewegungen-*` exists per language; the other strips
+mix languages on purpose. The Bitcoin values in the pictures are fixed examples.
 
 ## Screenshots
 
